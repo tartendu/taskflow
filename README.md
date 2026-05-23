@@ -10,6 +10,7 @@ Manage projects, tasks, attendance, leave, payroll-style petty cash, invoicing a
 [![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 [Features](#-features) · [Tech Stack](#-tech-stack) · [Quick Start](#-quick-start) · [Configuration](#-configuration) · [Deployment](#-deployment) · [Architecture](#-architecture) · [Roadmap](#-roadmap)
@@ -189,7 +190,7 @@ Please **never** include real credentials, `.env` files, or service-account keys
 
 ## 📄 License
 
-No license file is currently included, which by default means **all rights reserved**. If you intend this to be open source, add a license (e.g. [MIT](https://choosealicense.com/licenses/mit/)) so others can use and contribute to it.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ## 👤 Author
 
