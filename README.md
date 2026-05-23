@@ -191,8 +191,24 @@ Please **never** include real credentials, `.env` files, or service-account keys
 
 No license file is currently included, which by default means **all rights reserved**. If you intend this to be open source, add a license (e.g. [MIT](https://choosealicense.com/licenses/mit/)) so others can use and contribute to it.
 
+## 👤 Author
+
+**Tartendu Kumar**
+
+[![Website](https://img.shields.io/badge/Website-tartendu.in-0A66C2?logo=googlechrome&logoColor=white)](https://www.tartendu.in/)
+[![GitHub](https://img.shields.io/badge/GitHub-tartendu-181717?logo=github&logoColor=white)](https://github.com/tartendu/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-tartendukumar-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/tartendukumar/)
+[![X](https://img.shields.io/badge/X-@Tartendukumar-000000?logo=x&logoColor=white)](https://x.com/Tartendukumar)
+
+- 🌐 Website — [tartendu.in](https://www.tartendu.in/)
+- 💻 GitHub — [@tartendu](https://github.com/tartendu/)
+- 💼 LinkedIn — [tartendukumar](https://www.linkedin.com/in/tartendukumar/)
+- 🐦 X / Twitter — [@Tartendukumar](https://x.com/Tartendukumar)
+
 ---
 
 <div align="center">
-Built with Flask & Firebase. ⭐ Star the repo if you find it useful!
+
+Built with Flask & Firebase by [**Tartendu Kumar**](https://www.tartendu.in/). ⭐ Star the repo if you find it useful!
+
 </div>
