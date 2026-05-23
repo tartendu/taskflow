@@ -19,6 +19,16 @@ Manage projects, tasks, attendance, leave, payroll-style petty cash, invoicing a
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+  <img src="static/images/dashboard-light.png" alt="TaskFlow dashboard (light mode)" width="80%">
+  <br><br>
+  <img src="static/images/dashboard_dark.png" alt="TaskFlow dashboard (dark mode)" width="80%">
+  <br>
+  <em>The TaskFlow dashboard in light and dark modes.</em>
+</div>
+
 ## 📌 Overview
 
 **TaskFlow** is an all-in-one operations platform for small teams, agencies, and studios. Instead of paying for separate tools for project management, time tracking, attendance, expenses, and client collaboration, TaskFlow brings them together in a single self-hosted application powered by **Flask** and **Google Firebase Firestore**.
