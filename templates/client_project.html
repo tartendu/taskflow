@@ -1,0 +1,227 @@
+{% extends "client_base.html" %}
+
+{% block title %}{{ project.name }} - Client Portal{% endblock %}
+
+{% block page_title %}{{ project.name }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/client_project.css') }}">
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('client.client_dashboard') }}" class="back-btn">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Back to Projects
+</a>
+
+<div class="project-header">
+    <div>
+        <h1>{{ project.name }}</h1>
+        <p>{{ project.description or 'No description' }}</p>
+    </div>
+    <div class="project-actions">
+        <button class="btn-requirements" id="requirementsBtn" onclick="openRequirementsModal()" style="display:none;">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M9 5H7C5.89543 5 5 5.89543 5 7V15C5 16.1046 5.89543 17 7 17H13C14.1046 17 15 16.1046 15 15V7C15 5.89543 14.1046 5 13 5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="8" y="3" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 9H12M8 12H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Requirements
+            <span class="req-badge" id="reqBadge" style="display:none;">0</span>
+        </button>
+        <button class="btn-outline-green" onclick="downloadReport()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Download Report
+        </button>
+    </div>
+</div>
+
+<!-- Progress Summary -->
+<div class="progress-summary" id="progressSummary">
+    <div class="progress-bar-container">
+        <div class="progress-label">
+            <span>Overall Progress</span>
+            <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+    </div>
+    <div class="progress-stats">
+        <div class="progress-stat">
+            <div class="progress-stat-value" id="totalTasks">0</div>
+            <div class="progress-stat-label">Total</div>
+        </div>
+        <div class="progress-stat">
+            <div class="progress-stat-value" id="completedTasks">0</div>
+            <div class="progress-stat-label">Done</div>
+        </div>
+        <div class="progress-stat">
+            <div class="progress-stat-value" id="inProgressTasks">0</div>
+            <div class="progress-stat-label">Active</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>Priority:</label>
+        <select id="filterPriority" onchange="applyFilters()">
+            <option value="all">All</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Status:</label>
+        <select id="filterStatus" onchange="applyFilters()">
+            <option value="all">All</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="on_hold">On Hold</option>
+            <option value="done">Done</option>
+        </select>
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">Reset Filters</button>
+</div>
+
+<div class="client-info-banner">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 6V10M10 14H10.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span>You are viewing this project as a client. You can view task progress and add comments.</span>
+</div>
+
+<div class="kanban-board">
+    <div class="kanban-column" data-status="todo">
+        <div class="column-header">
+            <h3>To Do</h3>
+            <span class="task-count" id="todo-count">0</span>
+        </div>
+        <div class="task-list" id="todo-list"></div>
+    </div>
+
+    <div class="kanban-column" data-status="in_progress">
+        <div class="column-header">
+            <h3>In Progress</h3>
+            <span class="task-count" id="in_progress-count">0</span>
+        </div>
+        <div class="task-list" id="in_progress-list"></div>
+    </div>
+
+    <div class="kanban-column" data-status="on_hold">
+        <div class="column-header">
+            <h3>On Hold</h3>
+            <span class="task-count" id="on_hold-count">0</span>
+        </div>
+        <div class="task-list" id="on_hold-list"></div>
+    </div>
+
+    <div class="kanban-column" data-status="done">
+        <div class="column-header">
+            <h3>Done</h3>
+            <span class="task-count" id="done-count">0</span>
+        </div>
+        <div class="task-list" id="done-list"></div>
+    </div>
+</div>
+
+<!-- Requirements Modal -->
+<div id="requirementsModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3>Requirements from the Team</h3>
+            <span class="close" onclick="closeRequirementsModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p class="requirements-modal-subtitle">Things the team needs from you. Mark them as fulfilled when done.</p>
+            <div class="requirements-modal-summary" id="reqSummary"></div>
+            <div id="clientRequirementsList" class="client-requirements-list"></div>
+            <div id="reqEmptyState" class="req-empty-state" style="display:none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>No requirements at the moment.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Detail Modal for Client -->
+<div id="taskDetailModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 id="taskDetailTitle">Task Details</h3>
+            <span class="close" onclick="closeTaskDetail()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="task-detail-container">
+                <div class="task-detail-main">
+                    <div class="task-detail-description" id="taskDetailDescription"></div>
+
+                    <h4 style="margin: 20px 0 15px; color: #2c3e50;">Comments</h4>
+
+                    <div class="comment-form-client">
+                        <textarea id="commentInput" placeholder="Add a note or comment..."></textarea>
+                        <button class="btn btn-primary btn-sm" onclick="postComment()">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M2 8L14 8M14 8L9 3M14 8L9 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Post Comment
+                        </button>
+                    </div>
+
+                    <div id="commentsList" class="comments-list"></div>
+                </div>
+
+                <div class="task-detail-sidebar">
+                    <div class="task-meta-item">
+                        <label>Status</label>
+                        <span class="task-status" id="taskDetailStatus">To Do</span>
+                    </div>
+                    <div class="task-meta-item">
+                        <label>Priority</label>
+                        <span class="task-priority" id="taskDetailPriority">Medium</span>
+                    </div>
+                    <div class="task-meta-item">
+                        <label>Assigned To</label>
+                        <div id="taskDetailAssignee"><span>Unassigned</span></div>
+                    </div>
+                    <div class="task-meta-item">
+                        <label>Due Date</label>
+                        <div id="taskDetailDueDate"><span>No due date</span></div>
+                    </div>
+                    <div class="task-meta-item">
+                        <label>Time Spent</label>
+                        <div id="taskDetailTimeSpent" class="time-spent-display">
+                            <span class="time-value">0h 0m</span>
+                        </div>
+                    </div>
+                    <div class="task-meta-item">
+                        <label>Created</label>
+                        <div id="taskDetailCreated"><small>-</small></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PROJECT_ID = '{{ project.id }}';
+    const PROJECT_NAME = '{{ project.name }}';
+</script>
+<script src="{{ url_for('static', filename='js/client_project.js') }}"></script>
+{% endblock %}

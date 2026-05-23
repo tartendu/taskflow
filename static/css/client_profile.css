@@ -1,0 +1,201 @@
+/* Client Profile Page Styles — Dark Theme */
+
+.profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Profile Card */
+.profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.profile-card-header {
+    padding: 2rem;
+    background: linear-gradient(135deg, #1a1f35 0%, #1e2a4a 100%);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.profile-header-info { flex: 1; }
+
+.profile-header-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 0.25rem 0;
+}
+
+.profile-header-email {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.profile-header-badge {
+    background: rgba(99,102,241,0.2);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+/* Profile Card Body */
+.profile-card-body { padding: 2rem; }
+
+.profile-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Profile Form */
+.profile-form-group { margin-bottom: 1.25rem; }
+
+.profile-form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-soft);
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-form-group input {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: var(--surface-2);
+    color: var(--text);
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.profile-form-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.profile-form-group input:disabled {
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.profile-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Profile Info Display */
+.profile-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.profile-info-item:last-child { border-bottom: none; }
+.profile-info-label  { color: var(--text-muted); font-size: 0.9rem; }
+.profile-info-value  { color: var(--text); font-weight: 500; font-size: 0.9rem; }
+
+/* Buttons */
+.profile-btn {
+    padding: 0.65rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.profile-btn-primary {
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: white;
+}
+
+.profile-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+    opacity: 0.9;
+}
+
+.profile-btn-secondary {
+    background: var(--surface-2);
+    color: var(--text-soft);
+    border: 1px solid var(--border);
+}
+
+.profile-btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--text);
+}
+
+.profile-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* Success/Error Messages */
+.profile-message {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.profile-message.success {
+    background: rgba(16,185,129,0.1);
+    color: var(--green);
+    border: 1px solid rgba(16,185,129,0.2);
+}
+
+.profile-message.error {
+    background: rgba(239,68,68,0.1);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .profile-card-header { flex-direction: column; text-align: center; }
+    .profile-form-row    { grid-template-columns: 1fr; }
+    .profile-actions     { flex-direction: column; }
+    .profile-btn         { width: 100%; text-align: center; }
+}

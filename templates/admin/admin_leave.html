@@ -1,0 +1,114 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Leave Requests{% endblock %}
+{% block page_title %}Leave Requests{% endblock %}
+{% block page_subtitle %}Approve or reject employee leave applications{% endblock %}
+
+{% block topbar_actions %}
+<select class="select-input" id="leaveFilter" onchange="loadLeave()">
+    <option value="pending">Pending</option>
+    <option value="approved">Approved</option>
+    <option value="rejected">Rejected</option>
+    <option value="">All</option>
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header">
+        <div>
+            <div class="panel-title">Leave Applications</div>
+            <div class="panel-sub" id="leaveCount">Loading...</div>
+        </div>
+    </div>
+    <div id="leaveTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+
+<!-- Approve/Reject modal -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:center;justify-content:center;" id="leaveModal">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:420px;max-width:90vw;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:6px;" id="modalLeaveTitle">Leave Request</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" id="modalLeaveDetails"></p>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Admin Notes (optional)</label>
+            <textarea id="leaveNote" rows="2" style="width:100%;padding:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;resize:none;" placeholder="Add a note..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeLeaveModal()" style="flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);cursor:pointer;">Cancel</button>
+            <button onclick="submitLeave('reject')" style="flex:1;padding:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:var(--red);font-weight:600;cursor:pointer;">Reject</button>
+            <button onclick="submitLeave('approve')" style="flex:1;padding:10px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">Approve</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentLeaveId = null;
+
+async function loadLeave() {
+    const status = document.getElementById('leaveFilter').value;
+    document.getElementById('leaveTableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+        const res = await fetch(`/api/admin/leave-requests${status ? '?status='+status : ''}`);
+        const data = await res.json();
+        const items = data.leave_requests || [];
+        document.getElementById('leaveCount').textContent = `${items.length} request${items.length !== 1 ? 's' : ''}`;
+
+        if (!items.length) {
+            document.getElementById('leaveTableWrap').innerHTML = '<div class="empty-state">No leave requests found.</div>';
+            return;
+        }
+
+        const rows = items.map(r => {
+            const actionBtns = r.approval_status === 'pending'
+                ? `<button onclick="openLeaveModal('${r.id}','${r.user_name||''}','${r.leave_date||''}','${r.leave_type||''}')" style="padding:5px 12px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border:none;border-radius:6px;color:white;font-size:12px;font-weight:600;cursor:pointer;">Review</button>`
+                : `<span class="badge ${r.approval_status}">${r.approval_status}</span>`;
+            return `<tr>
+                <td><strong>${r.user_name || r.user_id || '—'}</strong></td>
+                <td>${r.leave_date || '—'}</td>
+                <td><span class="badge ${r.leave_type}">${r.leave_type || '—'}</span></td>
+                <td style="max-width:200px;color:var(--text-muted);">${r.leave_reason || '—'}</td>
+                <td><span class="badge ${r.approval_status || 'pending'}">${r.approval_status || 'pending'}</span></td>
+                <td>${actionBtns}</td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('leaveTableWrap').innerHTML = `
+            <table class="tbl">
+                <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('leaveTableWrap').innerHTML = '<div class="empty-state">Failed to load requests.</div>';
+    }
+}
+
+function openLeaveModal(id, name, date, type) {
+    currentLeaveId = id;
+    document.getElementById('modalLeaveTitle').textContent = `Leave Request — ${name}`;
+    document.getElementById('modalLeaveDetails').textContent = `${type} leave on ${date}`;
+    document.getElementById('leaveNote').value = '';
+    document.getElementById('leaveModal').style.display = 'flex';
+}
+
+function closeLeaveModal() {
+    document.getElementById('leaveModal').style.display = 'none';
+    currentLeaveId = null;
+}
+
+async function submitLeave(action) {
+    if (!currentLeaveId) return;
+    try {
+        await fetch(`/api/admin/leave-requests/${currentLeaveId}/${action}`, {
+            method: 'PUT',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({admin_notes: document.getElementById('leaveNote').value})
+        });
+        closeLeaveModal();
+        loadLeave();
+    } catch(e) { alert('Error updating leave request.'); }
+}
+
+loadLeave();
+</script>
+{% endblock %}

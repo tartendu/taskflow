@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - TaskFlow{% endblock %}
+
+{% block page_title %}{{ project.name }}{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/requirements.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="project-info">
+                <a href="{{ url_for('project.projects') }}" class="back-link">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Back to Projects
+                </a>
+                <h2>{{ project.name }}</h2>
+                <p class="project-description">{{ project.description or 'No description' }}</p>
+            </div>
+            <div class="dashboard-actions">
+                <button id="manageMembersBtn" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 6C14 8.20914 12.2091 10 10 10C7.79086 10 6 8.20914 6 6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6ZM2 18C2 14.6863 4.68629 12 8 12H12C15.3137 12 18 14.6863 18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Team
+                </button>
+                <button id="requirementsBtn" class="btn btn-secondary" onclick="openRequirementsPanel()">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V15C5 16.1046 5.89543 17 7 17H13C14.1046 17 15 16.1046 15 15V7C15 5.89543 14.1046 5 13 5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M9 5C9 3.89543 9.89543 3 11 3H9C10.1046 3 11 3.89543 11 5M9 5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M8 9H12M8 12H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Requirements
+                    <span class="requirements-badge" id="requirementsBadge" style="display:none;">0</span>
+                </button>
+                <button id="addTaskBtn" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Add Task
+                </button>
+            </div>
+        </div>
+
+        <div class="kanban-board">
+            <div class="kanban-column" data-status="todo">
+                <div class="column-header">
+                    <h3>To Do</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="todo-list">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="in_progress">
+                <div class="column-header">
+                    <h3>In Progress</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="in_progress-list">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="on_hold">
+                <div class="column-header">
+                    <h3>On Hold</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="on_hold-list">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="done">
+                <div class="column-header">
+                    <h3>Done</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="done-list">
+                    <!-- Tasks will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Task</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskTitle">Title</label>
+                        <input type="text" id="taskTitle" name="title" required placeholder="Task title">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Description</label>
+                        <textarea id="taskDescription" name="description" rows="4" placeholder="Describe the task..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskStatus">Status</label>
+                            <select id="taskStatus" name="status">
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="on_hold">On Hold</option>
+                                <option value="done">Done</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskPriority">Priority</label>
+                            <select id="taskPriority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="taskAssignee">Assign To</label>
+                            <select id="taskAssignee" name="assigned_to">
+                                <option value="">Unassigned</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDueDate">Due Date</label>
+                            <input type="date" id="taskDueDate" name="due_date">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Members Modal -->
+    <div id="membersModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Team Members</h3>
+                <span class="close" onclick="closeMembersModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="members-section">
+                    <div class="members-actions">
+                        <button id="inviteMemberBtn" class="btn btn-primary btn-sm">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Invite Member
+                        </button>
+                    </div>
+                    <div id="membersList" class="members-list">
+                        <!-- Members will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Member Modal -->
+    <div id="inviteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Invite Team Member</h3>
+                <span class="close" onclick="closeInviteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="inviteForm">
+                    <div class="form-group">
+                        <label for="memberEmail">Email Address</label>
+                        <input type="email" id="memberEmail" name="email" required placeholder="teammate@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="memberRole">Role</label>
+                        <select id="memberRole" name="role">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeInviteModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Invite</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="taskDetailModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="taskDetailTitle">Task Details</h3>
+                <span class="close" onclick="closeTaskDetail()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="task-detail-container">
+                    <!-- Task Info Section -->
+                    <div class="task-detail-main">
+                        <div class="task-detail-description" id="taskDetailDescription">
+                            <!-- Description will be loaded here -->
+                        </div>
+
+                        <div class="task-detail-tabs">
+                            <button class="tab-btn active" data-tab="comments">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M2 9C2 5.68629 4.68629 3 8 3H10C13.3137 3 16 5.68629 16 9V10C16 13.3137 13.3137 16 10 16H8C4.68629 16 2 13.3137 2 10V9Z" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M6 8H12M6 11H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                                Comments
+                                <span class="tab-badge" id="commentsCount">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="activity">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M9 3V9L12 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Activity
+                                <span class="tab-badge" id="activityCount">0</span>
+                            </button>
+                        </div>
+
+                        <!-- Comments Tab -->
+                        <div class="tab-content active" id="commentsTab">
+                            <div class="comment-form">
+                                <textarea id="commentInput" placeholder="Add a comment..." rows="3"></textarea>
+                                <button class="btn btn-primary btn-sm" onclick="postComment()">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M2 8L14 8M14 8L9 3M14 8L9 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Post Comment
+                                </button>
+                            </div>
+                            <div id="commentsList" class="comments-list">
+                                <!-- Comments will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Activity Tab -->
+                        <div class="tab-content" id="activityTab">
+                            <div id="activityTimeline" class="activity-timeline">
+                                <!-- Activity will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task Meta Section -->
+                    <div class="task-detail-sidebar">
+                        <div class="task-edit-actions">
+                            <button class="btn btn-secondary btn-sm" id="editTaskBtn" onclick="toggleEditMode()">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M11.5 1.5L14.5 4.5L5 14H2V11L11.5 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Edit
+                            </button>
+                        </div>
+
+                        <!-- View Mode -->
+                        <div id="viewMode">
+                            <div class="task-meta-item">
+                                <label>Status</label>
+                                <span class="task-status" id="taskDetailStatus">To Do</span>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Priority</label>
+                                <span class="task-priority" id="taskDetailPriority">Medium</span>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Assigned To</label>
+                                <div class="task-assignee-info" id="taskDetailAssignee">
+                                    <span>Unassigned</span>
+                                </div>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Due Date</label>
+                                <div id="taskDetailDueDate">
+                                    <span>No due date</span>
+                                </div>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Labels</label>
+                                <div id="taskDetailLabels" class="task-labels-list">
+                                    <!-- Labels will be loaded here -->
+                                </div>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Time Spent</label>
+                                <div id="taskDetailTimeSpent" class="time-spent-display">
+                                    <span class="time-value">0h 0m</span>
+                                    <button class="btn-log-time" onclick="openTimeModal()" title="Log Time">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                            <path d="M12 6V12L16 14M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Created</label>
+                                <div id="taskDetailCreated">
+                                    <small>-</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Edit Mode -->
+                        <div id="editMode" style="display: none;">
+                            <div class="task-meta-item">
+                                <label>Status</label>
+                                <select id="editStatus" class="form-control-sm">
+                                    <option value="todo">To Do</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="on_hold">On Hold</option>
+                                    <option value="done">Done</option>
+                                </select>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Priority</label>
+                                <select id="editPriority" class="form-control-sm">
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Assigned To</label>
+                                <select id="editAssignee" class="form-control-sm">
+                                    <option value="">Unassigned</option>
+                                </select>
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Due Date</label>
+                                <input type="date" id="editDueDate" class="form-control-sm">
+                            </div>
+                            <div class="task-meta-item">
+                                <label>Description</label>
+                                <textarea id="editDescription" class="form-control-sm" rows="4" placeholder="Task description..."></textarea>
+                            </div>
+                            <div class="task-edit-actions">
+                                <button class="btn btn-primary btn-sm" onclick="saveTaskChanges()">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M13 4L6 11L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Save
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="cancelEdit()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Tracking Modal -->
+    <div id="timeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Log Time</h3>
+                <span class="close" onclick="closeTimeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="time-total-display">
+                    <span>Total logged: </span>
+                    <strong id="timeModalTotal">0h 0m</strong>
+                </div>
+                <form id="timeForm" onsubmit="submitTimeEntry(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="timeHours">Hours</label>
+                            <input type="number" id="timeHours" name="hours" min="0" max="99" value="0" class="form-control-sm">
+                        </div>
+                        <div class="form-group">
+                            <label for="timeMinutes">Minutes</label>
+                            <input type="number" id="timeMinutes" name="minutes" min="0" max="59" value="0" class="form-control-sm">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="timeDescription">Description (optional)</label>
+                        <input type="text" id="timeDescription" name="description" placeholder="What did you work on?" class="form-control-sm">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="closeTimeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Log Time</button>
+                    </div>
+                </form>
+                <div class="time-entries-section">
+                    <h4>Recent Time Entries</h4>
+                    <div id="timeEntriesList" class="time-entries-list">
+                        <!-- Time entries will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requirements Modal -->
+    <div id="requirementsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Project Requirements</h3>
+                <span class="close" onclick="closeRequirementsPanel()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="requirements-subtitle">Things your team needs from the client. Clients can see these in their portal.</p>
+                <form id="reqForm" onsubmit="createRequirement(event)">
+                    <div class="req-form-row">
+                        <div class="req-form-group">
+                            <label for="reqTitle">Requirement</label>
+                            <input type="text" id="reqTitle" placeholder="e.g., We need the logo files" required>
+                        </div>
+                        <div class="req-form-group">
+                            <label for="reqPriority">Priority</label>
+                            <select id="reqPriority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="req-form-group">
+                        <label for="reqDescription">Description (optional)</label>
+                        <textarea id="reqDescription" rows="2" placeholder="Additional details about what you need..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-add-req">Add Requirement</button>
+                </form>
+                <div id="requirementsList" class="requirements-list" style="margin-top: 1.25rem;">
+                    <!-- Requirements will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PROJECT_ID = '{{ project.id }}';
+    </script>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/celebration.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/requirements.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Company Invoices - TaskFlow{% endblock %}
+{% block page_title %}Company Invoices{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/superadmin.css') }}">
+<style>
+    .inv-container { max-width: 1200px; }
+    .inv-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+    .inv-title-wrap { display: flex; align-items: center; gap: 12px; }
+    .inv-title-wrap h2 { font-size: 1.4rem; font-weight: 700; }
+    .inv-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; color: #fff; background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+    .inv-badge.view { background: linear-gradient(135deg,#3b82f6,#2563eb); }
+
+    .inv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .inv-stat-card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 14px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .inv-stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+    .inv-stat-label { font-size: 0.78rem; color: var(--text-secondary, #64748b); display: block; }
+    .inv-stat-value { font-size: 1.25rem; font-weight: 700; }
+
+    .inv-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .inv-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .inv-filters input { padding: 8px 10px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; background: var(--surface, #fff); color: var(--text-primary, #111); font-size: 0.85rem; }
+
+    .inv-table-wrap { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 14px; overflow-x: auto; }
+    table.inv-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .inv-table th { text-align: left; padding: 12px 14px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary, #64748b); border-bottom: 1px solid var(--border, #e5e7eb); white-space: nowrap; }
+    .inv-table td { padding: 12px 14px; border-bottom: 1px solid var(--border, #f1f5f9); vertical-align: middle; }
+    .inv-table tr:last-child td { border-bottom: none; }
+    .inv-tag { font-size: 0.74rem; padding: 2px 9px; border-radius: 20px; background: rgba(139,92,246,0.12); color: #8b5cf6; font-weight: 600; }
+    .inv-file-link { color: #6366f1; text-decoration: none; font-size: 0.8rem; margin-right: 4px; }
+    .inv-loading, .inv-empty { text-align: center; padding: 40px; color: var(--text-secondary, #94a3b8); }
+
+    .inv-btn { padding: 9px 16px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .inv-btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+    .inv-btn-secondary { background: var(--surface-2, #f1f5f9); color: var(--text-primary, #111); border: 1px solid var(--border, #e5e7eb); text-decoration: none; display: inline-flex; align-items: center; }
+    .inv-btn-icon { background: none; border: none; cursor: pointer; padding: 5px 7px; border-radius: 6px; font-size: 0.85rem; }
+    .inv-btn-icon.edit { color: #6366f1; }
+    .inv-btn-icon.del { color: #ef4444; }
+    .inv-btn-icon:hover { background: var(--surface-2, #f1f5f9); }
+
+    /* Modal */
+    .inv-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 700; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .inv-modal-overlay.show { display: flex; }
+    .inv-modal { background: var(--surface, #fff); border-radius: 16px; width: 100%; max-width: 500px; padding: 26px; box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
+    .inv-modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .inv-modal-sub { font-size: 0.82rem; color: var(--text-secondary, #64748b); margin-bottom: 18px; }
+    .inv-field { margin-bottom: 14px; }
+    .inv-field label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 5px; color: var(--text-secondary, #475569); }
+    .inv-field input, .inv-field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; background: var(--surface-2, #f8fafc); color: var(--text-primary, #111); font-size: 0.9rem; font-family: inherit; box-sizing: border-box; }
+    .inv-field textarea { resize: vertical; min-height: 70px; }
+    .inv-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .inv-modal-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #dc2626; padding: 9px 12px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 12px; display: none; }
+    .inv-modal-error.show { display: block; }
+    .inv-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .inv-modal-actions .inv-btn-primary { flex: 1; }
+    .inv-file-list { font-size: 0.78rem; color: var(--text-secondary, #64748b); margin-top: 6px; }
+    .inv-file-list a { color: #6366f1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="inv-container">
+
+    <div class="inv-header">
+        <div class="inv-title-wrap">
+            <h2>Company Invoices</h2>
+            {% if is_superadmin or can_manage_invoices %}
+                <span class="inv-badge">Manage Access</span>
+            {% elif can_view_invoices %}
+                <span class="inv-badge view">View Only</span>
+            {% endif %}
+        </div>
+        {% if is_superadmin or can_manage_invoices %}
+        <button class="inv-btn inv-btn-primary" onclick="openInvoiceModal()">+ Upload Invoice</button>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="inv-stats">
+        <div class="inv-stat-card">
+            <div class="inv-stat-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+                <span class="inv-stat-label">Total Invoices</span>
+                <span class="inv-stat-value" id="invCount">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="inv-toolbar">
+        <div class="inv-filters">
+            <input type="text" id="invFilterTag" placeholder="Filter by tag...">
+            <input type="date" id="invFilterStart" title="From">
+            <span style="color:var(--text-secondary,#94a3b8);">to</span>
+            <input type="date" id="invFilterEnd" title="To">
+            <button class="inv-btn inv-btn-secondary" onclick="loadInvoices()">Apply</button>
+            <button class="inv-btn inv-btn-secondary" onclick="clearInvFilters()">Clear</button>
+        </div>
+        <a class="inv-btn inv-btn-secondary" href="/api/invoices/export">⬇ Export CSV</a>
+    </div>
+
+    <!-- Table -->
+    <div class="inv-table-wrap">
+        <table class="inv-table">
+            <thead>
+                <tr>
+                    <th>Invoice Date</th>
+                    <th>Tag</th>
+                    <th>Vendor / Party</th>
+                    <th>Description</th>
+                    <th>File</th>
+                    <th>Uploaded By</th>
+                    {% if is_superadmin or can_manage_invoices %}<th style="width:80px;">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody id="invTableBody">
+                <tr><td colspan="7" class="inv-loading">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Upload / Edit Modal -->
+{% if is_superadmin or can_manage_invoices %}
+<div class="inv-modal-overlay" id="invModal">
+    <div class="inv-modal">
+        <h3 id="invModalTitle">Upload Invoice</h3>
+        <div class="inv-modal-sub">Attach an invoice file and add a tag and description.</div>
+        <div class="inv-modal-error" id="invModalError"></div>
+
+        <div class="inv-field-row">
+            <div class="inv-field">
+                <label>Invoice Date *</label>
+                <input type="date" id="invDate">
+            </div>
+            <div class="inv-field">
+                <label>Tag</label>
+                <input type="text" id="invTag" placeholder="e.g. GST, Rent, Q1">
+            </div>
+        </div>
+        <div class="inv-field">
+            <label>Vendor / Party Name</label>
+            <input type="text" id="invVendor" placeholder="Who the invoice is from / to">
+        </div>
+        <div class="inv-field">
+            <label>Description</label>
+            <textarea id="invDescription" placeholder="What this invoice is for..."></textarea>
+        </div>
+        <div class="inv-field">
+            <label>Invoice File (image or PDF) *</label>
+            <input type="file" id="invFiles" multiple accept="image/*,application/pdf">
+            <div class="inv-file-list" id="invFileList"></div>
+        </div>
+
+        <div class="inv-modal-actions">
+            <button class="inv-btn inv-btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+            <button class="inv-btn inv-btn-primary" id="invSaveBtn" onclick="saveInvoice()">Save Invoice</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const INV_CAN_MANAGE = {{ 'true' if (is_superadmin or can_manage_invoices) else 'false' }};
+</script>
+<script src="{{ url_for('static', filename='js/invoices.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Billing & Credits{% endblock %}
+{% block page_title %}Billing & Credits{% endblock %}
+{% block page_subtitle %}Purchase user slots — ₹{{ price_per_credit }} per user/month{% endblock %}
+
+{% block head %}
+<style>
+    .wallet-bar {
+        background: linear-gradient(135deg, #1e1b4b, #1e1b4b 60%, #2e1065);
+        border: 1px solid rgba(99,102,241,0.3);
+        border-radius: 16px;
+        padding: 28px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 32px;
+        gap: 24px;
+    }
+
+    .wallet-left h2 { font-size: 13px; font-weight: 600; color: #a5b4fc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .wallet-balance { font-size: 48px; font-weight: 800; color: white; line-height: 1; }
+    .wallet-balance span { font-size: 18px; font-weight: 500; color: #a5b4fc; margin-left: 8px; }
+
+    .wallet-stats { display: flex; gap: 32px; }
+    .wallet-stat { text-align: center; }
+    .wallet-stat-val { font-size: 22px; font-weight: 700; color: white; }
+    .wallet-stat-lbl { font-size: 11px; color: #a5b4fc; margin-top: 2px; }
+
+    .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .section-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; margin-top: -12px; }
+
+    .packs-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 40px;
+    }
+
+    .pack-card {
+        background: var(--surface);
+        border: 2px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        cursor: pointer;
+        transition: border-color 0.2s, transform 0.1s;
+        position: relative;
+    }
+
+    .pack-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .pack-card.selected { border-color: var(--primary); background: var(--primary-glow); }
+
+    .pack-popular {
+        position: absolute;
+        top: -10px; left: 50%; transform: translateX(-50%);
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+
+    .pack-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 12px; }
+    .pack-credits { font-size: 36px; font-weight: 800; color: var(--text); line-height: 1; }
+    .pack-credits span { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+    .pack-amount { font-size: 18px; font-weight: 700; color: var(--primary); margin-top: 8px; }
+    .pack-per { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    .btn-proceed {
+        padding: 14px 40px;
+        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+        border: none;
+        border-radius: 10px;
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 48px;
+    }
+
+    .btn-proceed:hover { opacity: 0.9; }
+    .btn-proceed:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .txn-table { width: 100%; border-collapse: collapse; }
+    .txn-table th {
+        text-align: left;
+        padding: 10px 16px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+    }
+    .txn-table td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+    .txn-table tr:last-child td { border-bottom: none; }
+    .txn-table tr:hover td { background: var(--surface-2); }
+
+    .type-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .type-badge.purchase { background: rgba(16,185,129,0.1); color: var(--green); }
+    .type-badge.deduction { background: rgba(239,68,68,0.1); color: var(--red); }
+    .type-badge.refund { background: rgba(245,158,11,0.1); color: var(--yellow); }
+
+    .amount-cell.purchase { color: var(--green); font-weight: 700; }
+    .amount-cell.deduction { color: var(--red); font-weight: 700; }
+    .amount-cell.refund { color: var(--yellow); font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Wallet summary bar -->
+<div class="wallet-bar">
+    <div class="wallet-left">
+        <h2>Credit Balance</h2>
+        <div class="wallet-balance">{{ wallet.get('balance', 0) }} <span>credits</span></div>
+    </div>
+    <div class="wallet-stats">
+        <div class="wallet-stat">
+            <div class="wallet-stat-val">{{ wallet.get('total_purchased', 0) }}</div>
+            <div class="wallet-stat-lbl">Total Purchased</div>
+        </div>
+        <div class="wallet-stat">
+            <div class="wallet-stat-val">{{ wallet.get('total_used', 0) }}</div>
+            <div class="wallet-stat-lbl">Total Used</div>
+        </div>
+        <div class="wallet-stat">
+            <div class="wallet-stat-val">₹{{ '{:,}'.format(wallet.get('total_used', 0) * price_per_credit) }}</div>
+            <div class="wallet-stat-lbl">Total Spent</div>
+        </div>
+    </div>
+</div>
+
+<!-- Pack selection -->
+<div class="section-title">Select a Credit Pack</div>
+<div class="section-sub">Each credit = 1 active user slot for 1 month</div>
+
+<div class="packs-grid">
+    {% for pack in packs %}
+    <div class="pack-card {% if pack.popular %}selected{% endif %}" data-pack-id="{{ pack.id }}" onclick="selectPack(this, '{{ pack.id }}')">
+        {% if pack.popular %}<div class="pack-popular">Most Popular</div>{% endif %}
+        <div class="pack-label">{{ pack.label }}</div>
+        <div class="pack-credits">{{ pack.credits }} <span>credits</span></div>
+        <div class="pack-amount">₹{{ '{:,}'.format(pack.amount) }}</div>
+        <div class="pack-per">₹{{ price_per_credit }} × {{ pack.credits }} users</div>
+    </div>
+    {% endfor %}
+</div>
+
+<button class="btn-proceed" id="proceedBtn" onclick="proceedToPayment()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+    Proceed to Payment
+</button>
+
+<!-- Transaction History -->
+<div class="panel">
+    <div class="panel-header">
+        <div class="panel-title">Transaction History</div>
+        <div class="panel-sub">All credit movements on your account</div>
+    </div>
+    {% if transactions %}
+    <table class="txn-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Credits</th>
+                <th>Amount</th>
+                <th>Payment ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td style="color: var(--text-muted);">
+                    {{ t.created_at[:10] if t.created_at else '—' }}
+                </td>
+                <td>{{ t.description or '—' }}</td>
+                <td>
+                    <span class="type-badge {{ t.type }}">
+                        {{ t.type.title() }}
+                    </span>
+                </td>
+                <td class="amount-cell {{ t.type }}">
+                    {{ '+' if t.type in ['purchase', 'refund'] else '-' }}{{ t.credits }}
+                </td>
+                <td class="amount-cell {{ t.type }}">
+                    {% if t.amount_inr %}₹{{ '{:,}'.format(t.amount_inr) }}{% else %}—{% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 11px; font-family: monospace;">
+                    {{ t.payment_id or '—' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">No transactions yet. Purchase your first credit pack to get started.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedPackId = '{{ packs[1].id }}'; // default: Business pack
+
+    function selectPack(el, packId) {
+        document.querySelectorAll('.pack-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        selectedPackId = packId;
+    }
+
+    async function proceedToPayment() {
+        const btn = document.getElementById('proceedBtn');
+        btn.disabled = true;
+        btn.textContent = 'Redirecting...';
+
+        try {
+            const res = await fetch('/admin/billing/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pack_id: selectedPackId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                alert(data.message || 'Something went wrong');
+                btn.disabled = false;
+                btn.textContent = 'Proceed to Payment';
+            }
+        } catch (err) {
+            alert('Connection error. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Proceed to Payment';
+        }
+    }
+</script>
+{% endblock %}

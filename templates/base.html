@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TaskFlow{% endblock %}</title>
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Page-specific CSS -->
+    {% block styles %}{% endblock %}
+
+    <!-- Apply theme before paint to avoid flash -->
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+    </script>
+</head>
+<body>
+{% if session.get('impersonating_as') %}
+<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+    <span>👁 Admin View — You are viewing as <strong>{{ current_user.full_name or current_user.username }}</strong></span>
+    <a href="/admin/stop-impersonating" style="padding:5px 14px;background:#000;color:#f59e0b;border-radius:6px;text-decoration:none;font-size:12px;font-weight:700;">✕ Exit &amp; Return to Admin</a>
+</div>
+<div style="height:40px;"></div>
+{% endif %}
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="TaskFlow Logo">
+                    <span class="logo-text">TaskFlow</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard.home_dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard.home_dashboard' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('project.projects') }}" class="nav-item {% if request.endpoint == 'project.projects' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13M12 13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Projects</span>
+                </a>
+
+                <a href="{{ url_for('project.my_tasks') }}" class="nav-item {% if request.endpoint == 'project.my_tasks' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>My Tasks</span>
+                </a>
+
+                <a href="{{ url_for('attendance.attendance_page') }}" class="nav-item {% if request.endpoint == 'attendance.attendance_page' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Attendance</span>
+                </a>
+
+                <a href="{{ url_for('dashboard.reports') }}" class="nav-item {% if request.endpoint == 'dashboard.reports' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 17V11M15 17V7M3 21H21M3 3H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M5 21V7L12 3L19 7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Reports</span>
+                </a>
+
+                <a href="{{ url_for('client.clients') }}" class="nav-item {% if request.endpoint == 'client.clients' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 20H22V18C22 16.3431 20.6569 15 19 15C18.0444 15 17.1931 15.4468 16.6438 16.1429M17 20H7M17 20V18C17 17.3438 16.8736 16.717 16.6438 16.1429M7 20H2V18C2 16.3431 3.34315 15 5 15C5.95561 15 6.80686 15.4468 7.35625 16.1429M7 20V18C7 17.3438 7.12642 16.717 7.35625 16.1429M7.35625 16.1429C8.0935 14.301 9.89482 13 12 13C14.1052 13 15.9065 14.301 16.6438 16.1429M15 7C15 8.65685 13.6569 10 12 10C10.3431 10 9 8.65685 9 7C9 5.34315 10.3431 4 12 4C13.6569 4 15 5.34315 15 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Clients</span>
+                </a>
+
+                {% if not is_superadmin and not can_view_petty_cash and not is_accountant %}
+                <a href="{{ url_for('petty_cash.petty_cash_page') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('petty_cash.') %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 13C16 14.1046 15.1046 15 14 15H10C8.89543 15 8 14.1046 8 13C8 11.8954 8.89543 11 10 11H14C15.1046 11 16 11.8954 16 13Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M2 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Petty Cash</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_attendance or can_view_petty_cash or is_accountant or can_view_leave or can_view_leave_summary or can_view_monthly_report or can_view_settings or can_view_projects or can_view_holidays or can_view_purchases or can_view_invoices %}
+                <div class="nav-divider"></div>
+                <div class="nav-section-title">Admin Control</div>
+
+                {% if is_superadmin %}
+                <a href="{{ url_for('superadmin.admin_panel') }}" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and not request.args.get('tab') %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Users</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_attendance %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=attendance" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'attendance' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Attendance</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_leave %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=leave-requests" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'leave-requests' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M9 5H15M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Leave Requests</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_leave_summary %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=leave-summary" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'leave-summary' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Leave Summary</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_monthly_report %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=monthly-report" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'monthly-report' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 17V11M15 17V7M21 21H3M3 3H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Monthly Report</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_petty_cash or is_accountant %}
+                <a href="{{ url_for('petty_cash.petty_cash_page') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('petty_cash.') %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 13C16 14.1046 15.1046 15 14 15H10C8.89543 15 8 14.1046 8 13C8 11.8954 8.89543 11 10 11H14C15.1046 11 16 11.8954 16 13Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M2 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>Petty Cash</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_projects %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=projects" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'projects' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13M12 13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Projects Mgmt</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_holidays %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=holidays" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'holidays' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Holidays</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_purchases %}
+                <a href="{{ url_for('purchases.purchases_page') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('purchases.') %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 3H5L5.4 5M7 13H17L21 5H5.4M7 13L5.4 5M7 13L4.7 15.3C4.3 15.7 4.6 16.5 5.1 16.5H17M17 16.5C15.9 16.5 15 17.4 15 18.5C15 19.6 15.9 20.5 17 20.5C18.1 20.5 19 19.6 19 18.5C19 17.4 18.1 16.5 17 16.5ZM9 18.5C9 19.6 8.1 20.5 7 20.5C5.9 20.5 5 19.6 5 18.5C5 17.4 5.9 16.5 7 16.5C8.1 16.5 9 17.4 9 18.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Company Purchases</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_invoices %}
+                <a href="{{ url_for('invoices.invoices_page') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('invoices.') %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M14 2V8H20M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Company Invoices</span>
+                </a>
+                {% endif %}
+
+                {% if is_superadmin or can_view_settings %}
+                <a href="{{ url_for('superadmin.admin_panel') }}?tab=settings" class="nav-item {% if request.endpoint == 'superadmin.admin_panel' and request.args.get('tab') == 'settings' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M19.4 15L19.46 17.1C19.65 17.49 20.05 18.02 20.05 18.52C20.05 19.02 19.85 19.55 19.46 19.94C19.07 20.33 18.54 20.52 18.04 20.52C17.54 20.52 17.01 20.33 16.62 19.94L16.56 19.88C16.26 19.68 15.91 19.57 15.54 19.57C15.18 19.57 14.82 19.68 14.52 19.88C14.23 20 13.97 20.22 13.8 20.48C13.62 20.75 13.52 21.07 13.52 21.39V21.56C13.52 22.09 13.31 22.6 12.94 22.97C12.56 23.35 12.05 23.56 11.52 23.56C10.99 23.56 10.48 23.35 10.11 22.97C9.73 22.6 9.52 22.09 9.52 21.56V21.47C9.51 21.14 9.41 20.82 9.21 20.55C9.02 20.28 8.75 20.07 8.44 19.96C8.14 19.76 7.79 19.65 7.42 19.65C7.06 19.65 6.7 19.76 6.4 19.96L6.34 20.02C5.97 20.39 5.46 20.6 4.92 20.6C4.39 20.6 3.88 20.39 3.5 20.02C3.13 19.64 2.92 19.13 2.92 18.6C2.92 18.07 3.13 17.56 3.5 17.18L3.56 17.12C3.77 16.82 3.87 16.46 3.87 16.1C3.87 15.74 3.77 15.38 3.56 15.08C3.44 14.78 3.23 14.53 2.96 14.35C2.69 14.18 2.38 14.08 2.05 14.08H1.88C1.35 14.08 0.84 13.87 0.47 13.49C0.09 13.12 -0.12 12.61 -0.12 12.08C-0.12 11.55 0.09 11.04 0.47 10.67C0.84 10.29 1.35 10.08 1.88 10.08H1.97C2.31 10.07 2.63 9.97 2.9 9.77C3.16 9.58 3.37 9.31 3.48 9C3.69 8.7 3.79 8.34 3.79 7.98C3.79 7.62 3.69 7.26 3.48 6.96L3.42 6.9C3.05 6.52 2.84 6.01 2.84 5.48C2.84 4.95 3.05 4.44 3.42 4.06C3.8 3.69 4.31 3.47 4.84 3.47C5.38 3.47 5.89 3.69 6.26 4.06L6.32 4.12C6.62 4.32 6.98 4.43 7.34 4.43C7.71 4.43 8.06 4.32 8.36 4.12H8.44C8.74 3.99 8.99 3.78 9.17 3.52C9.35 3.25 9.44 2.93 9.44 2.61V2.44C9.44 1.91 9.65 1.4 10.03 1.03C10.4 0.65 10.91 0.44 11.44 0.44C11.97 0.44 12.48 0.65 12.86 1.03C13.23 1.4 13.44 1.91 13.44 2.44V2.53C13.44 2.85 13.54 3.17 13.72 3.44C13.89 3.7 14.15 3.92 14.44 4.04C14.74 4.24 15.1 4.35 15.46 4.35C15.83 4.35 16.18 4.24 16.48 4.04L16.54 3.98C16.92 3.61 17.43 3.39 17.96 3.39C18.49 3.39 19 3.61 19.38 3.98C19.76 4.36 19.97 4.87 19.97 5.4C19.97 5.93 19.76 6.44 19.38 6.82L19.32 6.88C19.12 7.18 19.01 7.54 19.01 7.9C19.01 8.26 19.12 8.62 19.32 8.92V9C19.45 9.3 19.66 9.55 19.93 9.73C20.19 9.9 20.51 10 20.83 10H21C21.53 10 22.04 10.21 22.41 10.59C22.79 10.96 23 11.47 23 12C23 12.53 22.79 13.04 22.41 13.41C22.04 13.79 21.53 14 21 14H20.91C20.59 14 20.27 14.1 20.01 14.27C19.74 14.45 19.53 14.7 19.4 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+                {% endif %}
+
+                {% endif %}
+
+                <div class="nav-divider"></div>
+
+                <div class="nav-section-title">Account</div>
+
+                <a href="{{ url_for('dashboard.profile') }}" class="nav-item {% if request.endpoint == 'dashboard.profile' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Profile</span>
+                </a>
+
+                <a href="{{ url_for('auth.logout') }}" class="nav-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 16L21 12M21 12L17 8M21 12H7M13 16V17C13 18.6569 11.6569 20 10 20H6C4.34315 20 3 18.6569 3 17V7C3 5.34315 4.34315 4 6 4H10C11.6569 4 13 5.34315 13 7V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Logout</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        {% if current_user.is_authenticated %}{{ current_user.username[0].upper() }}{% else %}U{% endif %}
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">
+                            {% if current_user.is_authenticated %}
+                                {{ current_user.username }}
+                                {% if is_superadmin %}
+                                    <span class="superadmin-tag">Admin</span>
+                                {% elif user_role %}
+                                    <span class="superadmin-tag">{{ user_role | title }}</span>
+                                {% endif %}
+                            {% else %}
+                                Guest
+                            {% endif %}
+                        </div>
+                        <div class="user-email">
+                            {% if current_user.is_authenticated %}{{ current_user.email }}{% else %}Not logged in{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+
+                <div class="header-right">
+                    <button class="header-icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Mode" style="position:relative;">
+                        <svg id="themeIconDark" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <svg id="themeIconLight" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="notification-wrapper">
+                        <button class="header-icon-btn" id="notificationBtn" title="Notifications">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M15 17H20L18.5951 15.5951C18.2141 15.2141 18 14.6973 18 14.1585V11C18 8.38757 16.3304 6.16509 14 5.34142V5C14 3.89543 13.1046 3 12 3C10.8954 3 10 3.89543 10 5V5.34142C7.66962 6.16509 6 8.38757 6 11V14.1585C6 14.6973 5.78595 15.2141 5.40493 15.5951L4 17H9M15 17V18C15 19.6569 13.6569 21 12 21C10.3431 21 9 19.6569 9 18V17M15 17H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                        </button>
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <h4>Notifications</h4>
+                                <button class="mark-all-read-btn" id="markAllReadBtn">Mark all read</button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <div class="notification-empty">No notifications</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-menu" id="userMenuWrapper">
+                        <button class="user-menu-btn" id="userMenuBtn">
+                            <div class="header-user-avatar">
+                                {% if current_user.is_authenticated %}
+                                    {{ current_user.username[0].upper() }}
+                                {% else %}
+                                    U
+                                {% endif %}
+                            </div>
+                        </button>
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="user-dropdown-header">
+                                <div class="user-dropdown-avatar">
+                                    {% if current_user.is_authenticated %}
+                                        {{ current_user.username[0].upper() }}
+                                    {% else %}
+                                        U
+                                    {% endif %}
+                                </div>
+                                <div class="user-dropdown-info">
+                                    <div class="user-dropdown-name">
+                                        {% if current_user.is_authenticated %}{{ current_user.username }}{% else %}Guest{% endif %}
+                                    </div>
+                                    <div class="user-dropdown-email">
+                                        {% if current_user.is_authenticated %}{{ current_user.email }}{% else %}Not logged in{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="user-dropdown-divider"></div>
+                            <a href="{{ url_for('dashboard.profile') }}" class="user-dropdown-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Profile
+                            </a>
+                            <a href="{{ url_for('auth.logout') }}" class="user-dropdown-item user-dropdown-logout">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17 16L21 12M21 12L17 8M21 12H7M13 16V17C13 18.6569 11.6569 20 10 20H6C4.34315 20 3 18.6569 3 17V7C3 5.34315 4.34315 4 6 4H10C11.6569 4 13 5.34315 13 7V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="main-content" id="mainContent">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- Page-specific JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

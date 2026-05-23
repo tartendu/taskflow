@@ -1,0 +1,68 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Leave Summary{% endblock %}
+{% block page_title %}Leave Summary{% endblock %}
+{% block page_subtitle %}Monthly leave balances per employee{% endblock %}
+
+{% block topbar_actions %}
+<select class="select-input" id="sumMonth" onchange="loadSummary()"></select>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header">
+        <div><div class="panel-title">Leave Balances</div><div class="panel-sub" id="sumPeriod"></div></div>
+    </div>
+    <div id="sumTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const monthSel = document.getElementById('sumMonth');
+const now = new Date();
+for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const opt = new Option(d.toLocaleString('en-IN',{month:'long',year:'numeric'}), val);
+    if (i === 0) opt.selected = true;
+    monthSel.appendChild(opt);
+}
+
+async function loadSummary() {
+    const [year, month] = monthSel.value.split('-');
+    document.getElementById('sumPeriod').textContent = monthSel.options[monthSel.selectedIndex].text;
+    document.getElementById('sumTableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+        const res = await fetch(`/api/admin/attendance/leave-summary?year=${year}&month=${month}`);
+        const items = await res.json();
+        if (!Array.isArray(items) || !items.length) {
+            document.getElementById('sumTableWrap').innerHTML = '<div class="empty-state">No leave data for this period.</div>';
+            return;
+        }
+        const rows = items.map(u => {
+            const sickTotal = (u.sick_allotted ?? 1) + (u.carried_sick ?? 0);
+            const casTotal = (u.casual_allotted ?? 1) + (u.carried_casual ?? 0);
+            const totalUsed = (u.sick_used ?? 0) + (u.casual_used ?? 0);
+            const balance = sickTotal + casTotal - totalUsed;
+            const carryFwd = (u.carried_sick ?? 0) + (u.carried_casual ?? 0);
+            return `<tr>
+                <td><strong>${u.user_name || '—'}</strong><div style="font-size:11px;color:var(--text-muted);">${u.email||''}</div></td>
+                <td style="text-align:center;">${u.sick_used ?? 0} / ${sickTotal}</td>
+                <td style="text-align:center;">${u.casual_used ?? 0} / ${casTotal}</td>
+                <td style="text-align:center;">${carryFwd}</td>
+                <td style="text-align:center;">${totalUsed}</td>
+                <td style="text-align:center;"><span class="badge ${balance > 0 ? 'active' : 'absent'}">${balance} left</span></td>
+            </tr>`;
+        }).join('');
+        document.getElementById('sumTableWrap').innerHTML = `
+            <table class="tbl">
+                <thead><tr><th>Employee</th><th style="text-align:center;">Sick (Used/Total)</th><th style="text-align:center;">Casual (Used/Total)</th><th style="text-align:center;">Carry Forward</th><th style="text-align:center;">Total Used</th><th style="text-align:center;">Balance</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('sumTableWrap').innerHTML = '<div class="empty-state">Failed to load summary.</div>';
+    }
+}
+loadSummary();
+</script>
+{% endblock %}

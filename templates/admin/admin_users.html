@@ -1,0 +1,501 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block page_subtitle %}{{ users|length }} user{{ 's' if users|length != 1 else '' }} registered{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn-primary" onclick="openModal()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Create User
+</button>
+{% endblock %}
+
+{% block head %}
+<style>
+    .credit-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px 24px; margin-bottom: 24px;
+    }
+    .credit-bar-left { display: flex; align-items: center; gap: 12px; }
+    .credit-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; color: var(--primary); }
+    .credit-count { font-size: 22px; font-weight: 800; color: var(--text); }
+    .credit-label { font-size: 12px; color: var(--text-muted); }
+    .credit-bar .btn-buy { padding: 8px 16px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
+    .search-box { position: relative; flex: 1; max-width: 320px; }
+    .search-box input { width: 100%; padding: 10px 14px 10px 38px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 16px; height: 16px; }
+
+    .table-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .user-table { width: 100%; border-collapse: collapse; }
+    .user-table th { text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .user-table td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .user-table tr:last-child td { border-bottom: none; }
+    .user-table tr:hover td { background: var(--surface-2); }
+
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .user-av { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-name { font-weight: 600; color: var(--text); }
+    .user-email { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.active { background: rgba(16,185,129,0.1); color: var(--green); }
+    .badge.grace { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .badge.locked { background: rgba(239,68,68,0.1); color: var(--red); }
+    .badge.pending { background: rgba(99,102,241,0.1); color: var(--primary); }
+
+    .must-change { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 600; background: rgba(245,158,11,0.1); color: var(--yellow); margin-left: 6px; }
+
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .btn-icon { width: 30px; height: 30px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .btn-icon svg { width: 15px; height: 15px; }
+    .btn-icon.lock { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .btn-icon.lock:hover { background: rgba(245,158,11,0.2); }
+    .btn-icon.unlock { background: rgba(16,185,129,0.1); color: var(--green); }
+    .btn-icon.unlock:hover { background: rgba(16,185,129,0.2); }
+    .btn-icon.del { background: rgba(239,68,68,0.1); color: var(--red); }
+    .btn-icon.del:hover { background: rgba(239,68,68,0.2); }
+    .btn-icon.view { background: rgba(99,102,241,0.1); color: var(--primary); }
+    .btn-icon.view:hover { background: rgba(99,102,241,0.2); }
+    .btn-icon.reset { background: rgba(16,185,129,0.1); color: var(--green); }
+    .btn-icon.reset:hover { background: rgba(16,185,129,0.2); }
+
+    /* Reset password modal */
+    .reset-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 600; align-items: center; justify-content: center; }
+    .reset-modal-overlay.visible { display: flex; }
+    .reset-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 420px; max-width: 90vw; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .reset-modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .reset-modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .new-pass-box { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; }
+    .new-pass-box input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 14px; font-family: monospace; }
+    .new-pass-box button { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .new-pass-box button:hover { color: var(--text); }
+
+    .temp-pass-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; align-items: center; justify-content: center; }
+    .modal-overlay.visible { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 100%; max-width: 460px; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .modal .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-soft); margin-bottom: 8px; }
+    .form-group input, .form-group select { width: 100%; padding: 11px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+    .modal-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; color: #fca5a5; font-size: 13px; margin-bottom: 16px; display: none; }
+    .modal-error.visible { display: block; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+    .btn-modal-primary { flex: 1; padding: 12px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border: none; border-radius: 8px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-modal-primary:hover { opacity: 0.9; }
+    .btn-modal-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-modal-cancel { padding: 12px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+    .btn-modal-cancel:hover { border-color: var(--text-soft); color: var(--text); }
+
+    .role-select { padding: 4px 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 500; outline: none; cursor: pointer; transition: border-color 0.15s; }
+    .role-select:focus { border-color: var(--primary); }
+    .role-select.role-employee  { color: #94a3b8; }
+    .role-select.role-hr        { color: var(--green); }
+    .role-select.role-manager   { color: #3b82f6; }
+    .role-select.role-accountant{ color: var(--primary); }
+    .role-select.role-superadmin{ color: var(--yellow); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Create User Modal -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <h2>Create User Account</h2>
+        <div class="modal-sub">This will deduct 1 credit from your wallet.</div>
+
+        <div class="modal-error" id="modalError"></div>
+
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="newFullName" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="newEmail" placeholder="john@company.com">
+        </div>
+        <div class="form-group">
+            <label>Temporary Password</label>
+            <input type="text" id="newPassword" placeholder="Min. 6 characters">
+            <div class="temp-pass-note">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                User will be prompted to change this on first login
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Department <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+            <input type="text" id="newDepartment" placeholder="e.g. Engineering, Sales">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-modal-primary" id="createBtn" onclick="createUser()">Create & Deduct 1 Credit</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="reset-modal-overlay" id="resetModal">
+    <div class="reset-modal">
+        <h3>Reset Password</h3>
+        <p id="resetModalSub">Set a new temporary password for this user.</p>
+        <div class="new-pass-box">
+            <input type="text" id="resetPassInput" placeholder="New password" readonly>
+            <button onclick="copyResetPass()">Copy</button>
+            <button onclick="regenPass()">Regenerate</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn-modal-cancel" onclick="closeResetModal()">Cancel</button>
+            <button class="btn-modal-primary" id="resetConfirmBtn" onclick="confirmReset()">Set Password</button>
+        </div>
+    </div>
+</div>
+
+<!-- Credit bar -->
+<div class="credit-bar">
+    <div class="credit-bar-left">
+        <div class="credit-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        </div>
+        <div>
+            <div class="credit-count" id="creditCount">{{ wallet.get('balance', 0) }}</div>
+            <div class="credit-label">credits remaining · each user costs 1 credit/month</div>
+        </div>
+    </div>
+    <a href="/admin/billing" class="btn-buy">+ Buy Credits</a>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+    <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="Search users..." oninput="filterUsers()">
+    </div>
+</div>
+
+<!-- Users table -->
+<div class="table-panel">
+    {% if users %}
+    <table class="user-table" id="userTable">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Department</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Subscription Expires</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="userTableBody">
+            {% for u in users %}
+            <tr id="row-{{ u.id }}" data-name="{{ (u.get('full_name') or u.get('username', '')).lower() }}" data-email="{{ u.get('email', '').lower() }}">
+                <td>
+                    <div class="user-cell">
+                        <div class="user-av">{{ (u.get('full_name') or u.get('username', 'U'))[0].upper() }}</div>
+                        <div>
+                            <div class="user-name">
+                                {{ u.get('full_name') or u.get('username', '—') }}
+                                {% if u.get('must_change_password') %}
+                                <span class="must-change">First login pending</span>
+                                {% endif %}
+                            </div>
+                            <div class="user-email">{{ u.get('email', '—') }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td style="color: var(--text-muted);">{{ u.get('department') or '—' }}</td>
+                <td>
+                    <select class="role-select" data-current="{{ u.get('role', 'employee') }}" onchange="updateRole('{{ u.id }}', this)">
+                        <option value="{{ u.get('role', 'employee') }}" selected>{{ u.get('role', 'employee')|title }}</option>
+                    </select>
+                </td>
+                <td>
+                    {% set status = u.get('subscription_status') %}
+                    {% if status == 'active' or status == None %}
+                        <span class="badge active">Active</span>
+                    {% elif status == 'grace' %}
+                        <span class="badge grace">Grace Period</span>
+                    {% elif status == 'locked' %}
+                        <span class="badge locked">Locked</span>
+                    {% else %}
+                        <span class="badge pending">{{ status or 'Unknown' }}</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">
+                    {% if u.get('subscription_expires') %}
+                        {{ u.get('subscription_expires', '')[:10] }}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">
+                    {{ u.get('created_at', '')[:10] if u.get('created_at') else '—' }}
+                </td>
+                <td>
+                    <div class="actions">
+                        {% set status = u.get('subscription_status') %}
+                        {% if status == 'locked' %}
+                        <button class="btn-icon unlock" title="Unlock account" onclick="toggleLock('{{ u.id }}', this)">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6v-10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>
+                        </button>
+                        {% else %}
+                        <button class="btn-icon lock" title="Lock account" onclick="toggleLock('{{ u.id }}', this)">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                        </button>
+                        {% endif %}
+                        <button class="btn-icon reset" title="Reset password" onclick="openResetModal('{{ u.id }}', '{{ u.get('full_name') or u.get('email') }}')">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C8.676 1 5.7 2.686 3.906 5.26L2 3v6h6L5.854 6.854A8 8 0 1 1 12 20a8 8 0 0 1-7.938-7H2.05A10 10 0 1 0 12 1zm-1 5v6l5 3 .75-1.3L13 11V6z"/></svg>
+                        </button>
+                        <a href="/admin/impersonate/{{ u.id }}" class="btn-icon view" title="View as this user" style="display:flex;align-items:center;justify-content:center;">
+                            <svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                        </a>
+                        <button class="btn-icon del" title="Delete user" onclick="deleteUser('{{ u.id }}', '{{ u.get('full_name') or u.get('email') }}')">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:48px;height:48px;opacity:0.3;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <p>No users yet. Create your first user account above.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let creditBalance = {{ wallet.get('balance', 0) }};
+    let allRoles = [];
+
+    async function loadRoles() {
+        try {
+            const res = await fetch('/admin/api/roles');
+            const data = await res.json();
+            allRoles = data.roles || [];
+        } catch(e) { allRoles = []; }
+        // Populate all role dropdowns
+        document.querySelectorAll('.role-select').forEach(sel => {
+            const current = sel.dataset.current || 'employee';
+            sel.innerHTML = allRoles.map(r =>
+                `<option value="${escVal(r.name)}" ${r.name === current ? 'selected' : ''}>${escVal(r.name)}</option>`
+            ).join('');
+            if (!allRoles.find(r => r.name === current)) {
+                sel.innerHTML = `<option value="${escVal(current)}" selected>${escVal(current)}</option>` + sel.innerHTML;
+            }
+        });
+    }
+
+    function escVal(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+    loadRoles();
+
+    function openModal() {
+        if (creditBalance < 1) {
+            if (confirm('You have no credits left. Buy more credits to create users?')) {
+                window.location.href = '/admin/billing';
+            }
+            return;
+        }
+        document.getElementById('createModal').classList.add('visible');
+        document.getElementById('newFullName').focus();
+    }
+
+    function closeModal() {
+        document.getElementById('createModal').classList.remove('visible');
+        document.getElementById('modalError').classList.remove('visible');
+        document.getElementById('newFullName').value = '';
+        document.getElementById('newEmail').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newDepartment').value = '';
+    }
+
+    async function createUser() {
+        const btn = document.getElementById('createBtn');
+        const errorEl = document.getElementById('modalError');
+        errorEl.classList.remove('visible');
+
+        const full_name = document.getElementById('newFullName').value.trim();
+        const email = document.getElementById('newEmail').value.trim();
+        const password = document.getElementById('newPassword').value.trim();
+        const department = document.getElementById('newDepartment').value.trim();
+
+        if (!full_name || !email || !password) {
+            errorEl.textContent = 'Full name, email, and password are required.';
+            errorEl.classList.add('visible');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        try {
+            const res = await fetch('/admin/api/users/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full_name, email, password, department })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                closeModal();
+                window.location.reload();
+            } else {
+                errorEl.textContent = data.message || 'Failed to create user.';
+                errorEl.classList.add('visible');
+                if (data.no_credits) {
+                    setTimeout(() => { window.location.href = '/admin/billing'; }, 2000);
+                }
+            }
+        } catch (err) {
+            errorEl.textContent = 'Connection error. Please try again.';
+            errorEl.classList.add('visible');
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Create & Deduct 1 Credit';
+    }
+
+    async function toggleLock(userId, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/admin/api/users/${userId}/toggle-lock`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) window.location.reload();
+        } catch (err) {
+            alert('Error updating user status.');
+        }
+        btn.disabled = false;
+    }
+
+    async function deleteUser(userId, name) {
+        if (!confirm(`Delete user "${name}"? This will refund 1 credit to your wallet.`)) return;
+        try {
+            const res = await fetch(`/admin/api/users/${userId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById(`row-${userId}`)?.remove();
+                creditBalance++;
+                document.getElementById('creditCount').textContent = creditBalance;
+            }
+        } catch (err) {
+            alert('Error deleting user.');
+        }
+    }
+
+    async function updateRole(userId, selectEl) {
+        const role = selectEl.value;
+        const prev = selectEl.dataset.prev || selectEl.querySelector('[selected]')?.value || 'employee';
+        selectEl.disabled = true;
+        try {
+            const res = await fetch(`/admin/api/users/${userId}/role`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role })
+            });
+            const data = await res.json();
+            if (data.success) {
+                selectEl.dataset.current = role;
+                selectEl.dataset.prev = role;
+            } else {
+                alert(data.message || 'Failed to update role.');
+                selectEl.value = prev;
+            }
+        } catch (err) {
+            alert('Connection error.');
+            selectEl.value = prev;
+        }
+        selectEl.disabled = false;
+    }
+
+    let resetUserId = null;
+    let resetEndpoint = null;
+
+    function randPass() {
+        const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789@#!';
+        return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    }
+
+    function openResetModal(userId, name) {
+        resetUserId = userId;
+        resetEndpoint = `/admin/api/users/${userId}/reset-password`;
+        document.getElementById('resetModalSub').textContent = `Set a new temporary password for ${name}. They will be prompted to change it on next login.`;
+        document.getElementById('resetPassInput').value = randPass();
+        document.getElementById('resetConfirmBtn').disabled = false;
+        document.getElementById('resetConfirmBtn').textContent = 'Set Password';
+        document.getElementById('resetModal').classList.add('visible');
+    }
+
+    function closeResetModal() {
+        document.getElementById('resetModal').classList.remove('visible');
+        resetUserId = null;
+        resetEndpoint = null;
+    }
+
+    function regenPass() {
+        document.getElementById('resetPassInput').value = randPass();
+    }
+
+    function copyResetPass() {
+        const val = document.getElementById('resetPassInput').value;
+        navigator.clipboard.writeText(val).then(() => {
+            const btn = event.target;
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+        });
+    }
+
+    async function confirmReset() {
+        const password = document.getElementById('resetPassInput').value.trim();
+        if (!password) return;
+        const btn = document.getElementById('resetConfirmBtn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+        try {
+            const res = await fetch(resetEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeResetModal();
+                alert(`Password reset successfully.\n\nNew password: ${data.new_password}\n\nShare this with the user securely.`);
+            } else {
+                alert(data.message || 'Failed to reset password.');
+                btn.disabled = false;
+                btn.textContent = 'Set Password';
+            }
+        } catch(e) {
+            alert('Connection error.');
+            btn.disabled = false;
+            btn.textContent = 'Set Password';
+        }
+    }
+
+    function filterUsers() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        document.querySelectorAll('#userTableBody tr').forEach(row => {
+            const name = row.dataset.name || '';
+            const email = row.dataset.email || '';
+            row.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('createModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+</script>
+{% endblock %}

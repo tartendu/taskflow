@@ -1,0 +1,87 @@
+Complete Implementation Plan
+Architecture Decisions (Confirmed)
+Decision	Choice
+Admin login	Separate /admin/login page
+Purchase unit	Credits/Slots (Option B)
+Billing cycle	Monthly subscription ₹499/user
+On expiry	7-day grace period → account locked
+Data on lock	Preserved, never deleted
+Payment flow	Fake simulated gateway (Razorpay-style)
+Admin dashboard	New enterprise-style dashboard
+User creation	Superadmin creates → user completes on first login
+Phase 1: Separate Admin Authentication
+New /admin/login route and template
+Superadmin sessions completely separate from user sessions
+Regular /login blocks superadmin accounts from logging in
+/admin/* routes all protected by admin session, not Flask-Login user session
+Phase 2: New Admin Dashboard
+/admin/dashboard — metrics: credits remaining, active users, grace period users, monthly spend
+/admin/users — user list with status (active, grace, locked), create user button
+/admin/billing — credit wallet, transaction history, buy more credits button
+Clean sidebar navigation, enterprise UI
+Phase 3: Credit/Wallet System
+Firestore collections needed:
+
+
+credits/
+  {superadmin_id}/
+    balance: 10          # available slots
+    total_purchased: 20
+    last_updated: ...
+
+transactions/
+  {id}/
+    type: 'purchase'|'deduction'|'refund'
+    amount: 4990         # in rupees
+    credits: 10
+    user_id: ...         # if deduction, which user
+    created_at: ...
+    payment_id: ...      # fake payment reference
+Phase 4: Fake Payment Gateway
+/admin/billing/checkout?credits=10 — order summary page
+/admin/billing/payment — fake Razorpay-style UI (card fields, pay button)
+2 second loading spinner → success page
+Credits added to wallet on success
+Transaction record created
+Phase 5: User Management with Credits
+Create user form: name, email, temp password, role, department
+On create → check if credits > 0 → deduct 1 credit → create user
+User gets must_change_password: true, is_active: true, subscription_status: 'active'
+If no credits → block creation with "Insufficient credits, please purchase more"
+Phase 6: Subscription Lifecycle
+New fields on user document:
+
+
+must_change_password: true
+subscription_status: 'active'|'grace'|'locked'
+subscription_start: date
+subscription_expires: date      # start + 30 days
+grace_period_ends: date         # expires + 7 days
+Monthly job logic (can be a manual trigger for now):
+
+Check all users where subscription_expires < today
+Move to grace status → superadmin sees warning banner
+After grace_period_ends < today → move to locked
+Phase 7: First Login Flow
+After login, check must_change_password
+If true → redirect to /change-password (cannot skip)
+User sets new password + completes profile (phone, profile picture optional)
+Sets must_change_password: false
+Redirected to main app
+Phase 8: Login Gate
+Regular /login → checks subscription_status
+active or grace → allow login (grace shows banner)
+locked → block with "Your account is inactive, contact your administrator"
+/admin/login → only is_superadmin: true accounts, no subscription check
+Build Order
+
+1. Admin login (separate session)
+2. Admin dashboard shell (UI)
+3. Credit wallet + Firestore collections
+4. Fake payment gateway
+5. User creation with credit deduction
+6. Subscription status fields + login gate
+7. First login / forced password change
+8. Grace period warnings + locked state
+This gives us a production-ready architecture that can swap the fake gateway for real Razorpay with minimal changes.
+

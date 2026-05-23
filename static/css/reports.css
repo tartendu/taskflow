@@ -1,0 +1,230 @@
+/* Reports Page — Dark Theme */
+
+.reports-container { padding: 0; max-width: 1400px; margin: 0 auto; }
+
+.page-header { margin-bottom: 24px; }
+
+.header-content h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px 0;
+}
+
+.header-subtitle { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.15s;
+}
+
+.stat-card:hover { border-color: var(--primary); }
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-content { flex: 1; }
+.stat-label   { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.stat-value   { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; }
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+}
+
+.chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.chart-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+}
+
+.chart-header h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px 0;
+}
+
+.chart-subtitle { font-size: 12px; color: var(--text-muted); margin: 0; }
+.chart-body     { padding: 20px 22px; }
+
+/* Completion Circle */
+.completion-circle {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+}
+
+.progress-ring { transform: rotate(0deg); }
+
+.progress-ring-fill {
+    stroke-dasharray: 534.07;
+    stroke-dashoffset: 534.07;
+    transition: stroke-dashoffset 1s ease;
+}
+
+.completion-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.completion-percentage {
+    font-size: 2.25rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.completion-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* Bar Chart */
+.bar-chart { display: flex; flex-direction: column; gap: 16px; }
+
+.bar-item { display: flex; align-items: center; gap: 12px; }
+
+.bar-label { min-width: 90px; font-weight: 600; color: var(--text-soft); font-size: 12px; }
+
+.bar-wrapper {
+    flex: 1;
+    height: 28px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.8s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+}
+
+.bar-fill.todo-bar     { background: linear-gradient(135deg, #64748b, #475569); }
+.bar-fill.progress-bar { background: linear-gradient(135deg, var(--blue), #2563eb); }
+.bar-fill.hold-bar     { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+.bar-fill.done-bar     { background: linear-gradient(135deg, var(--green), #059669); }
+
+.bar-value {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 600;
+    color: var(--text);
+    font-size: 12px;
+}
+
+/* Priority List */
+.priority-list { display: flex; flex-direction: column; gap: 20px; }
+
+.priority-item { display: flex; flex-direction: column; gap: 8px; }
+
+.priority-info { display: flex; justify-content: space-between; align-items: center; }
+
+.priority-badge {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.priority-badge.high   { background: rgba(239,68,68,0.15);  color: var(--red); }
+.priority-badge.medium { background: rgba(245,158,11,0.15); color: var(--yellow); }
+.priority-badge.low    { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+
+.priority-count { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+
+.priority-bar-wrapper {
+    height: 10px;
+    background: var(--surface-2);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.priority-bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; }
+.priority-bar-fill.high   { background: linear-gradient(135deg, var(--red),    #dc2626); }
+.priority-bar-fill.medium { background: linear-gradient(135deg, var(--yellow),  #d97706); }
+.priority-bar-fill.low    { background: linear-gradient(135deg, #64748b, #475569); }
+
+/* Project Stats */
+.project-stats { display: flex; flex-direction: column; gap: 16px; }
+
+.project-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-2);
+    transition: all 0.15s;
+}
+
+.project-stat-item:hover { border-color: var(--primary); }
+
+.project-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.project-stat-icon.owned  { background: linear-gradient(135deg, var(--primary), #8b5cf6); }
+.project-stat-icon.member { background: linear-gradient(135deg, var(--blue), #0ea5e9); }
+
+.project-stat-content { flex: 1; }
+
+.project-stat-value { font-size: 1.75rem; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.project-stat-label { font-size: 12px; color: var(--text-muted); }
+
+/* Responsive */
+@media (max-width: 1200px) { .charts-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .chart-body { padding: 16px; }
+    .bar-label  { min-width: 70px; font-size: 11px; }
+    .completion-circle { width: 150px; height: 150px; }
+    .completion-percentage { font-size: 1.75rem; }
+}

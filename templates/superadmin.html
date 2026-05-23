@@ -1,0 +1,775 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - TaskFlow{% endblock %}
+
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/superadmin.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="admin-title-section">
+                <h2>System Administration</h2>
+                <span class="admin-badge">Super Admin</span>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-icon users-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 21V19C17 16.7909 15.2091 15 13 15H5C2.79086 15 1 16.7909 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M23 21V19C23 17.1362 21.7252 15.5701 20 15.126" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M16 3.12602C17.7252 3.57006 19 5.13616 19 7C19 8.86384 17.7252 10.4299 16 10.874" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Users</span>
+                    <span class="stat-value" id="totalUsersCount">--</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon projects-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13M12 13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Projects</span>
+                    <span class="stat-value" id="totalProjectsCount">--</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon tasks-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Tasks</span>
+                    <span class="stat-value" id="totalTasksCount">--</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon attendance-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Checked In Today</span>
+                    <span class="stat-value" id="checkedInCount">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <div class="tabs-header">
+                {% if is_superadmin %}<button class="tab-btn active" data-tab="users">Users</button>{% endif %}
+                {% if is_superadmin or can_view_attendance %}<button class="tab-btn {% if not is_superadmin %}active{% endif %}" data-tab="attendance">Attendance</button>{% endif %}
+                {% if is_superadmin or can_view_leave %}<button class="tab-btn" data-tab="leave-requests">Leave Requests <span class="tab-badge" id="pendingLeaveCount" style="display:none;">0</span></button>{% endif %}
+                {% if is_superadmin or can_view_leave_summary %}<button class="tab-btn" data-tab="leave-summary">Leave Summary</button>{% endif %}
+                {% if is_superadmin or can_view_monthly_report %}<button class="tab-btn" data-tab="monthly-report">Monthly Report</button>{% endif %}
+                {% if is_superadmin or can_view_projects %}<button class="tab-btn" data-tab="projects">Projects</button>{% endif %}
+                {% if is_superadmin or can_view_holidays %}<button class="tab-btn" data-tab="holidays">Holidays</button>{% endif %}
+                {% if is_superadmin or can_view_attendance %}<button class="tab-btn" data-tab="regularization">Regularization <span class="tab-badge" id="pendingRegCount" style="display:none;">0</span></button>{% endif %}
+                {% if is_superadmin or can_view_settings %}<button class="tab-btn" data-tab="settings">Settings</button>{% endif %}
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-content active" id="users-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>All Users</h3>
+                        <input type="text" id="userSearch" placeholder="Search users..." class="search-input">
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Projects</th>
+                                    <th>Joined</th>
+                                    <th>Admin</th>
+                                    <th>Accountant</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr><td colspan="7" class="loading-cell">Loading users...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Tab -->
+            <div class="tab-content" id="attendance-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Team Attendance</h3>
+                        <div class="date-filters">
+                            {% if is_superadmin or can_manage_attendance %}<button class="btn btn-primary btn-sm" onclick="openAddAttendanceModal()" style="margin-right:4px;">+ Add</button>{% endif %}
+                            <input type="date" id="attendanceStartDate" class="date-input">
+                            <span class="date-separator">to</span>
+                            <input type="date" id="attendanceEndDate" class="date-input">
+                            <button class="btn btn-secondary btn-sm" onclick="loadAttendanceView()">View</button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadAttendanceCSV()" id="downloadCsvBtn">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 3px;">
+                                    <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                CSV
+                            </button>
+                            <div class="view-toggle">
+                                <button class="view-toggle-btn active" onclick="switchAttView('detail')" id="viewDetailBtn">Detail</button>
+                                <button class="view-toggle-btn" onclick="switchAttView('calendar')" id="viewCalendarBtn">Calendar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Attendance Stats -->
+                    <div class="attendance-stats" id="attendanceStats" style="display: none;">
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="statPresent">--</span>
+                            <span class="att-stat-label">Present</span>
+                        </div>
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="statAbsent">--</span>
+                            <span class="att-stat-label">Absent</span>
+                        </div>
+                        <div class="att-stat-card late">
+                            <span class="att-stat-value" id="statLate">--</span>
+                            <span class="att-stat-label">Late Arrivals</span>
+                        </div>
+                        <div class="att-stat-card early">
+                            <span class="att-stat-value" id="statEarly">--</span>
+                            <span class="att-stat-label">Early Departures</span>
+                        </div>
+                        <div class="att-stat-card overtime">
+                            <span class="att-stat-value" id="statOvertime">--</span>
+                            <span class="att-stat-label">Overtime</span>
+                        </div>
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="statAvgHours">--</span>
+                            <span class="att-stat-label">Avg Work Hours</span>
+                        </div>
+                    </div>
+
+                    <!-- Detail View -->
+                    <div id="attendanceDetailView">
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Team Member</th>
+                                        <th>Email</th>
+                                        <th>Check In</th>
+                                        <th>Check Out</th>
+                                        <th>Work Hours</th>
+                                        <th>Timing</th>
+                                        <th>Device</th>
+                                        <th>Status</th>
+                                        <th>Leave</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <tr><td colspan="9" class="loading-cell">Select a date and click View</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Grid View -->
+                    <div id="attendanceCalendarView" style="display: none;">
+                        <div class="calendar-grid-container">
+                            <table class="calendar-grid" id="calendarGridTable">
+                                <thead id="calendarGridHead"></thead>
+                                <tbody id="calendarGridBody">
+                                    <tr><td class="loading-cell" colspan="2">Select a date range and click View</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="calendar-legend">
+                            <div class="legend-item"><span class="legend-dot present"></span> Present</div>
+                            <div class="legend-item"><span class="legend-dot absent"></span> Absent</div>
+                            <div class="legend-item"><span class="legend-dot half-day"></span> Half Day</div>
+                            <div class="legend-item"><span class="legend-dot late"></span> Late</div>
+                            <div class="legend-item"><span class="legend-dot sick-leave"></span> Sick Leave</div>
+                            <div class="legend-item"><span class="legend-dot casual-leave"></span> Casual Leave</div>
+                            <div class="legend-item"><span class="legend-dot holiday"></span> Holiday</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Requests Tab -->
+            <div class="tab-content" id="leave-requests-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Leave Requests</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Duration</th>
+                                    <th>Reason</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaveRequestsBody">
+                                <tr><td colspan="7" class="loading-cell">Loading leave requests...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Summary Tab -->
+            <div class="tab-content" id="leave-summary-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Leave Balance Summary</h3>
+                        <div class="date-filters">
+                            <select id="leaveSummaryMonth" class="date-input">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                            <input type="number" id="leaveSummaryYear" class="date-input" style="width:80px;" min="2020" max="2099">
+                            <button class="btn btn-secondary btn-sm" onclick="loadLeaveSummary()">View</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Team Member</th>
+                                    <th>Email</th>
+                                    <th>Sick Allotted</th>
+                                    <th>Sick Carried</th>
+                                    <th>Sick Used</th>
+                                    <th>Sick Available</th>
+                                    <th>Casual Allotted</th>
+                                    <th>Casual Carried</th>
+                                    <th>Casual Used</th>
+                                    <th>Casual Available</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaveSummaryBody">
+                                <tr><td colspan="10" class="loading-cell">Select a month and click View</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Report Tab -->
+            <div class="tab-content" id="monthly-report-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Monthly Attendance Report</h3>
+                        <div class="date-filters">
+                            <select id="reportMonth" class="date-input">
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                            <input type="number" id="reportYear" class="date-input" style="width:80px;" min="2020" max="2099">
+                            <button class="btn btn-secondary btn-sm" onclick="loadMonthlyReport()">View</button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadMonthlyReportCSV()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align: middle; margin-right: 3px;">
+                                    <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                CSV
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Summary Cards -->
+                    <div class="attendance-stats" id="reportSummary" style="display:none;">
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="reportTotalUsers">--</span>
+                            <span class="att-stat-label">Total Users</span>
+                        </div>
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="reportWorkingDays">--</span>
+                            <span class="att-stat-label">Working Days</span>
+                        </div>
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="reportAvgAttendance">--</span>
+                            <span class="att-stat-label">Avg Attendance %</span>
+                        </div>
+                        <div class="att-stat-card">
+                            <span class="att-stat-value" id="reportTotalLeaves">--</span>
+                            <span class="att-stat-label">Total Leaves</span>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Present</th>
+                                    <th>Half Day</th>
+                                    <th>Absent</th>
+                                    <th>Sick</th>
+                                    <th>Casual</th>
+                                    <th>Total Hours</th>
+                                    <th>Avg Hours</th>
+                                    <th>Late</th>
+                                    <th>Early Out</th>
+                                    <th>Attendance %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyReportBody">
+                                <tr><td colspan="11" class="loading-cell">Select a month and click View</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Holidays Tab -->
+            <div class="tab-content" id="holidays-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Holiday Management</h3>
+                        <div class="date-filters">
+                            <input type="number" id="holidayYear" class="date-input" style="width:80px;" min="2020" max="2099">
+                            <button class="btn btn-secondary btn-sm" onclick="loadHolidays()">View</button>
+                            {% if is_superadmin or can_manage_holidays %}<button class="btn btn-primary btn-sm" onclick="openAddHolidayModal()">+ Add Holiday</button>{% endif %}
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Holiday Name</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holidaysTableBody">
+                                <tr><td colspan="5" class="loading-cell">Loading holidays...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regularization Tab -->
+            <div class="tab-content" id="regularization-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Regularization Requests</h3>
+                        <div class="date-filters">
+                            <select id="regStatusFilter" class="date-input" style="padding:6px 10px;" onchange="loadAdminRegularizations()">
+                                <option value="">All</option>
+                                <option value="pending" selected>Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <button class="btn btn-secondary btn-sm" onclick="loadAdminRegularizations()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Date</th>
+                                    <th>Check-In</th>
+                                    <th>Check-Out</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminRegBody">
+                                <tr><td colspan="7" class="loading-cell">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rejection Reason Modal -->
+            <div class="modal-overlay" id="regRejectModal" style="display:none;">
+                <div class="modal-card" style="max-width:400px;">
+                    <div class="modal-header">
+                        <h4>Reject Request</h4>
+                        <button class="modal-close" onclick="closeRegRejectModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:8px;">Rejection Reason</label>
+                        <textarea id="regRejectReason" rows="3" placeholder="Enter reason for rejection..."
+                            style="width:100%; padding:10px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                                   font-size:0.88rem; resize:vertical; outline:none; font-family:inherit;
+                                   background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c);"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:12px;">
+                            <button onclick="closeRegRejectModal()" style="flex:1; padding:9px; background:var(--bg-secondary,#f1f5f9); color:var(--text-secondary,#64748b); border:none; border-radius:8px; font-size:0.88rem; cursor:pointer;">Cancel</button>
+                            <button id="regRejectConfirmBtn" onclick="confirmRegReject()" style="flex:2; padding:9px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;">Reject</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects Tab -->
+            <div class="tab-content" id="projects-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>All Projects</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Owner</th>
+                                    <th>Members</th>
+                                    <th>Tasks</th>
+                                    <th>Completed</th>
+                                    <th>In Progress</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTableBody">
+                                <tr><td colspan="7" class="loading-cell">Loading projects...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settings-tab">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h3>Office Timing Configuration</h3>
+                    </div>
+                    <div class="settings-form">
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label>Office Start Time</label>
+                                <input type="time" id="officeStartTime" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Office End Time</label>
+                                <input type="time" id="officeEndTime" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Expected Work Hours</label>
+                                <input type="number" id="expectedHours" class="form-input" min="1" max="24" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Half-Day Threshold (hours)</label>
+                                <input type="number" id="halfDayThreshold" class="form-input" min="1" max="12" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>Late Arrival Threshold (minutes)</label>
+                                <input type="number" id="lateThreshold" class="form-input" min="0" max="120" step="5">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            {% if is_superadmin or can_manage_settings %}<button class="btn btn-primary" onclick="saveOfficeSettings()">Save Settings</button>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Geofence Configuration</h3>
+                    </div>
+                    <div class="settings-form">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+                            Set office location and radius. Check-ins outside the radius will be flagged (not blocked).
+                        </p>
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label>Enable Geofencing</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="geofenceEnabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>Radius (meters)</label>
+                                <input type="number" id="geofenceRadius" class="form-input" min="50" max="5000" step="50" placeholder="200">
+                            </div>
+                            <div class="form-group">
+                                <label>Office Latitude</label>
+                                <input type="number" id="officeLatitude" class="form-input" step="0.000001" placeholder="e.g. 28.6139">
+                            </div>
+                            <div class="form-group">
+                                <label>Office Longitude</label>
+                                <input type="number" id="officeLongitude" class="form-input" step="0.000001" placeholder="e.g. 77.2090">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            {% if is_superadmin or can_manage_settings %}<button class="btn btn-primary" onclick="saveGeofenceSettings()">Save Geofence Settings</button>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Leave Quota Configuration</h3>
+                    </div>
+                    <div class="settings-form">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+                            Configure how many sick and casual leaves are allotted per employee per month.
+                            Unused leaves carry forward automatically.
+                        </p>
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label>Monthly Sick Leaves</label>
+                                <input type="number" id="monthlySickLeaves" class="form-input" min="0" max="30" step="1" placeholder="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Monthly Casual Leaves</label>
+                                <input type="number" id="monthlyCasualLeaves" class="form-input" min="0" max="30" step="1" placeholder="1">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            {% if is_superadmin or can_manage_settings %}<button class="btn btn-primary" onclick="saveLeaveSettings()">Save Leave Settings</button>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Face Recognition Settings -->
+                <div class="admin-card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Face Recognition Settings</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="loadFaceEnrollmentStatus()">Refresh</button>
+                    </div>
+                    <div class="settings-form">
+                        <div class="settings-grid" style="margin-bottom:20px;">
+                            <div class="form-group">
+                                <label>Face-Only Check-In</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="faceOnlyEnabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <p style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;">
+                                    When enabled, employees must use face recognition to check in. Button check-in is disabled.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="settings-actions" style="margin-bottom:24px;">
+                            {% if is_superadmin or can_manage_settings %}<button class="btn btn-primary" onclick="saveFaceSettings()">Save Face Settings</button>{% endif %}
+                        </div>
+
+                        <h4 style="font-size:0.9rem; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Employee Face Enrollment Status</h4>
+                        <div class="table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Status</th>
+                                        <th>Enrolled On</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="faceEnrollmentBody">
+                                    <tr><td colspan="4" class="loading-cell">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div class="modal-overlay" id="resetPasswordModal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Reset Password</h3>
+                <button class="modal-close" onclick="closeResetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Reset password for: <strong id="resetUserName"></strong></p>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPasswordInput" placeholder="Minimum 6 characters" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmResetPassword()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Attendance Modal -->
+    <div class="modal-overlay" id="addAttendanceModal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="attModalTitle">Add Attendance</h3>
+                <button class="modal-close" onclick="closeAddAttendanceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <select id="attUserSelect" class="form-input"></select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="attDate" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Check-in Time</label>
+                    <input type="time" id="attCheckIn" class="form-input" value="09:00">
+                </div>
+                <div class="form-group">
+                    <label>Check-out Time (optional)</label>
+                    <input type="time" id="attCheckOut" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <input type="text" id="attNotes" class="form-input" placeholder="e.g. Forgot to check in">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddAttendanceModal()">Cancel</button>
+                <button class="btn btn-primary" id="attModalSubmitBtn" onclick="submitAddAttendance()">Add Attendance</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Leave Modal -->
+    <div class="modal-overlay" id="rejectLeaveModal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Reject Leave Request</h3>
+                <button class="modal-close" onclick="closeRejectModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Rejecting leave for: <strong id="rejectLeaveName"></strong></p>
+                <div class="form-group">
+                    <label>Reason for rejection (optional)</label>
+                    <textarea id="rejectReasonInput" class="form-input" rows="3" placeholder="Enter reason..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-primary" style="background:#e74c3c;" onclick="confirmRejectLeave()">Reject Leave</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Holiday Modal -->
+    <div class="modal-overlay" id="holidayModal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="holidayModalTitle">Add Holiday</h3>
+                <button class="modal-close" onclick="closeHolidayModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="holidayDate" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Holiday Name</label>
+                    <input type="text" id="holidayName" class="form-input" placeholder="e.g. Republic Day">
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="holidayType" class="form-input">
+                        <option value="national">National Holiday</option>
+                        <option value="company">Company Holiday</option>
+                        <option value="optional">Optional Holiday</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeHolidayModal()">Cancel</button>
+                <button class="btn btn-primary" id="holidayModalSubmitBtn" onclick="submitHoliday()">Add Holiday</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Attendance Modal -->
+    <div class="modal-overlay" id="editAttendanceModal" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>Edit Attendance</h3>
+                <button class="modal-close" onclick="closeEditAttendanceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Editing record for: <strong id="editAttName"></strong></p>
+                <div class="form-group">
+                    <label>Check-in Time</label>
+                    <input type="time" id="editAttCheckIn" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Check-out Time</label>
+                    <input type="time" id="editAttCheckOut" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" id="editAttNotes" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditAttendanceModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitEditAttendance()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Permission flags consumed by superadmin.js for gating write actions.
+        window.PERMS = {
+            is_superadmin:           {{ 'true' if is_superadmin else 'false' }},
+            can_manage_attendance:   {{ 'true' if (is_superadmin or can_manage_attendance) else 'false' }},
+            can_manage_leave:        {{ 'true' if (is_superadmin or can_manage_leave) else 'false' }},
+            can_manage_holidays:     {{ 'true' if (is_superadmin or can_manage_holidays) else 'false' }},
+            can_manage_settings:     {{ 'true' if (is_superadmin or can_manage_settings) else 'false' }},
+            can_manage_leave_summary:{{ 'true' if (is_superadmin or can_manage_leave_summary) else 'false' }},
+            can_manage_projects:     {{ 'true' if (is_superadmin or can_manage_projects) else 'false' }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/superadmin.js') }}"></script>
+{% endblock %}

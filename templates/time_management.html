@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Time Management - TaskFlow{% endblock %}
+
+{% block page_title %}Time Management{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/time_management.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="time-management-container">
+        <div class="page-header">
+            <div class="header-content">
+                <h2>Schedule & Events</h2>
+                <p class="header-subtitle">Manage your meetings, reminders, and personal events</p>
+            </div>
+            <button class="btn btn-primary" id="addEventBtn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                New Event
+            </button>
+        </div>
+
+        <div class="time-management-layout">
+            <!-- Upcoming Events -->
+            <div class="events-section">
+                <div class="section-header">
+                    <h3>Upcoming Events</h3>
+                    <span class="event-count" id="upcomingCount">0</span>
+                </div>
+                <div class="events-list" id="upcomingEvents">
+                    <!-- Upcoming events will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Today's Events -->
+            <div class="events-section today-section">
+                <div class="section-header">
+                    <h3>Today</h3>
+                    <span class="event-count today-count" id="todayCount">0</span>
+                </div>
+                <div class="events-list" id="todayEvents">
+                    <!-- Today's events will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Past Events -->
+            <div class="events-section">
+                <div class="section-header">
+                    <h3>Past Events</h3>
+                    <span class="event-count" id="pastCount">0</span>
+                </div>
+                <div class="events-list" id="pastEvents">
+                    <!-- Past events will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Event Modal -->
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Event</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventId">
+                    <div class="form-group">
+                        <label for="eventTitle">Title *</label>
+                        <input type="text" id="eventTitle" name="title" required placeholder="Meeting with team">
+                    </div>
+                    <div class="form-group">
+                        <label for="eventDescription">Description</label>
+                        <textarea id="eventDescription" name="description" rows="3" placeholder="Add details about this event..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventType">Type</label>
+                            <select id="eventType" name="event_type">
+                                <option value="meeting">Meeting</option>
+                                <option value="reminder">Reminder</option>
+                                <option value="personal">Personal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventLocation">Location</label>
+                            <input type="text" id="eventLocation" name="location" placeholder="Conference Room A">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventStartTime">Start Time *</label>
+                            <input type="datetime-local" id="eventStartTime" name="start_time" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventEndTime">End Time</label>
+                            <input type="datetime-local" id="eventEndTime" name="end_time">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Add Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/time_management.js') }}"></script>
+{% endblock %}

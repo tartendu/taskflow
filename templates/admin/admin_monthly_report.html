@@ -1,0 +1,89 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Monthly Report{% endblock %}
+{% block page_title %}Monthly Report{% endblock %}
+{% block page_subtitle %}Full attendance + leave breakdown by employee{% endblock %}
+
+{% block topbar_actions %}
+<select class="select-input" id="repMonth" onchange="loadReport()"></select>
+<button class="btn-secondary" onclick="exportReport()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Export CSV
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid stat-grid-4" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="stat-val" id="rPresent">—</div><div class="stat-lbl">Total Present Days</div></div>
+    <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></div><div class="stat-icon yellow"></div><div class="stat-val" id="rHalf">—</div><div class="stat-lbl">Half Days</div></div>
+    <div class="stat-card"><div class="stat-icon red"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="stat-val" id="rAbsent">—</div><div class="stat-lbl">Absent Days</div></div>
+    <div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.86.18-1.3C18 2.57 15.43 1 13 1c-1.36 0-2.55.57-3.43 1.47L8 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/></svg></div><div class="stat-val" id="rLeave">—</div><div class="stat-lbl">Leave Days</div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div><div class="panel-title">Monthly Attendance Report</div><div class="panel-sub" id="repPeriodLabel"></div></div>
+    </div>
+    <div id="repTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const monthSel = document.getElementById('repMonth');
+const now = new Date();
+for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const opt = new Option(d.toLocaleString('en-IN',{month:'long',year:'numeric'}), val);
+    if (i === 0) opt.selected = true;
+    monthSel.appendChild(opt);
+}
+
+async function loadReport() {
+    const [year, month] = monthSel.value.split('-');
+    document.getElementById('repPeriodLabel').textContent = monthSel.options[monthSel.selectedIndex].text;
+    document.getElementById('repTableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+        const res = await fetch(`/api/admin/attendance/monthly-report?year=${year}&month=${month}`);
+        const data = await res.json();
+        const rows = data.report || [];
+        let totPres=0, totHalf=0, totAbs=0, totLeave=0;
+        rows.forEach(r => { totPres += r.days_present||0; totHalf += r.days_half_day||0; totAbs += r.days_absent||0; totLeave += (r.sick_leaves||0)+(r.casual_leaves||0); });
+        document.getElementById('rPresent').textContent = totPres;
+        document.getElementById('rHalf').textContent = totHalf;
+        document.getElementById('rAbsent').textContent = totAbs;
+        document.getElementById('rLeave').textContent = totLeave;
+
+        if (!rows.length) {
+            document.getElementById('repTableWrap').innerHTML = '<div class="empty-state">No report data for this period.</div>';
+            return;
+        }
+        const tableRows = rows.map(r => `
+            <tr>
+                <td><strong>${r.user_name || '—'}</strong></td>
+                <td style="text-align:center;">${r.total_working_days ?? '—'}</td>
+                <td style="text-align:center;"><span class="badge present">${r.days_present ?? 0}</span></td>
+                <td style="text-align:center;"><span class="badge half-day">${r.days_half_day ?? 0}</span></td>
+                <td style="text-align:center;"><span class="badge absent">${r.days_absent ?? 0}</span></td>
+                <td style="text-align:center;"><span class="badge holiday">${(r.sick_leaves??0)+(r.casual_leaves??0)}</span></td>
+                <td style="text-align:center;">${r.total_work_hours ? r.total_work_hours.toFixed(1)+'h' : '—'}</td>
+                <td style="text-align:center;">${r.avg_daily_hours ? r.avg_daily_hours.toFixed(1)+'h' : '—'}</td>
+            </tr>`).join('');
+        document.getElementById('repTableWrap').innerHTML = `
+            <table class="tbl">
+                <thead><tr><th>Employee</th><th style="text-align:center;">Working Days</th><th style="text-align:center;">Present</th><th style="text-align:center;">Half Day</th><th style="text-align:center;">Absent</th><th style="text-align:center;">Leave</th><th style="text-align:center;">Total Hours</th><th style="text-align:center;">Avg Hours</th></tr></thead>
+                <tbody>${tableRows}</tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('repTableWrap').innerHTML = '<div class="empty-state">Failed to load report.</div>';
+    }
+}
+
+function exportReport() {
+    const [year, month] = monthSel.value.split('-');
+    window.location.href = `/api/admin/attendance/monthly-report/csv?year=${year}&month=${month}`;
+}
+
+loadReport();
+</script>
+{% endblock %}

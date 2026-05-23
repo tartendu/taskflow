@@ -1,0 +1,375 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Clients{% endblock %}
+{% block page_title %}Client Access{% endblock %}
+{% block page_subtitle %}All external clients and their project access across all users{% endblock %}
+
+{% block topbar_actions %}
+<input type="text" class="search-input" id="clientSearch" placeholder="Search clients..." oninput="filterClients()">
+<select class="select-input" id="clientFilter" onchange="filterClients()">
+    <option value="">All Status</option>
+    <option value="active">Active</option>
+    <option value="inactive">Inactive</option>
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid stat-grid-3" id="clientStats" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Total Clients</div></div>
+    <div class="stat-card"><div class="stat-icon indigo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="stat-val" id="statActive">—</div><div class="stat-lbl">Active</div></div>
+    <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.86.18-1.3C18 2.57 15.43 1 13 1c-1.36 0-2.55.57-3.43 1.47L8 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/></svg></div><div class="stat-val" id="statProjects">—</div><div class="stat-lbl">Total Project Links</div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div><div class="panel-title">All Clients</div><div class="panel-sub" id="clientCount">Loading...</div></div>
+    </div>
+    <div id="clientTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+
+<!-- Projects access modal -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:center;justify-content:center;padding:24px;" id="projectsModal">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:560px;max-width:100%;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <h3 style="font-size:15px;font-weight:700;" id="modalClientName">Projects</h3>
+            <button onclick="closeProjectsModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);line-height:1;">&times;</button>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px;">Toggle project access for this client. Changes are saved instantly.</p>
+        <div id="modalProjectsList"><div style="color:var(--text-muted);font-size:13px;">Loading...</div></div>
+    </div>
+</div>
+<!-- Reset Password Modal -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;align-items:center;justify-content:center;" id="clientResetModal">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:420px;max-width:90vw;box-shadow:0 40px 80px rgba(0,0,0,0.5);">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">Reset Client Password</h3>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" id="clientResetSub">Set a new password for this client.</p>
+        <div style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px;">
+            <input type="text" id="clientResetPassInput" style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:monospace;" readonly>
+            <button onclick="copyClientPass()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;font-weight:600;" id="clientCopyBtn">Copy</button>
+            <button onclick="document.getElementById('clientResetPassInput').value=randClientPass()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:11px;font-weight:600;">Regenerate</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeClientReset()" style="padding:11px 20px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;">Cancel</button>
+            <button onclick="confirmClientReset()" id="clientResetBtn" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border:none;border-radius:8px;color:white;font-size:14px;font-weight:600;cursor:pointer;">Set Password</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allClients = [];
+
+async function loadClients() {
+    try {
+        const res = await fetch('/admin/api/clients');
+        const data = await res.json();
+        allClients = data.clients || [];
+
+        const total = allClients.length;
+        const active = allClients.filter(c => c.is_active !== false).length;
+        const projLinks = allClients.reduce((s, c) => s + (c.project_count || 0), 0);
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statActive').textContent = active;
+        document.getElementById('statProjects').textContent = projLinks;
+
+        filterClients();
+    } catch(e) {
+        document.getElementById('clientTableWrap').innerHTML = '<div class="empty-state">Failed to load clients.</div>';
+    }
+}
+
+function filterClients() {
+    const q = document.getElementById('clientSearch').value.toLowerCase();
+    const f = document.getElementById('clientFilter').value;
+
+    const filtered = allClients.filter(c => {
+        const matchQ = !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || (c.created_by_name||'').toLowerCase().includes(q);
+        const matchF = !f || (f === 'active' ? c.is_active !== false : c.is_active === false);
+        return matchQ && matchF;
+    });
+
+    document.getElementById('clientCount').textContent = `${filtered.length} client${filtered.length !== 1 ? 's' : ''}`;
+
+    if (!filtered.length) {
+        document.getElementById('clientTableWrap').innerHTML = '<div class="empty-state">No clients found.</div>';
+        return;
+    }
+
+    const rows = filtered.map(c => {
+        const isActive = c.is_active !== false;
+        const badge = isActive
+            ? `<span class="badge active">Active</span>`
+            : `<span class="badge locked">Inactive</span>`;
+
+        const lastLogin = c.last_login
+            ? new Date(c.last_login).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})
+            : '—';
+
+        const createdAt = c.created_at
+            ? new Date(c.created_at).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})
+            : '—';
+
+        const projectsHtml = c.project_count > 0
+            ? `<button onclick="showProjects('${c.id}')" style="padding:3px 10px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:6px;color:var(--primary);font-size:12px;cursor:pointer;">${c.project_count} project${c.project_count !== 1 ? 's' : ''}</button>`
+            : `<span style="color:var(--text-muted);font-size:12px;">None</span>`;
+
+        const initials = (c.name || '?')[0].toUpperCase();
+        const creatorInitial = (c.created_by_name || '?')[0].toUpperCase();
+
+        const toggleTitle = isActive ? 'Deactivate client' : 'Activate client';
+        const toggleIcon = isActive
+            ? `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>`
+            : `<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.66 1.34-3 3-3s3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6v-10h12v10zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/></svg>`;
+        const toggleBg = isActive ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)';
+        const toggleClr = isActive ? '#f59e0b' : '#10b981';
+
+        return `<tr data-id="${c.id}">
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;">${initials}</div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text);">${escHtml(c.name)}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">${escHtml(c.email)}</div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:26px;height:26px;border-radius:6px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--primary);flex-shrink:0;">${creatorInitial}</div>
+                    <div>
+                        <div style="font-size:13px;color:var(--text);">${escHtml(c.created_by_name)}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">${escHtml(c.created_by_email)}</div>
+                    </div>
+                </div>
+            </td>
+            <td>${badge}</td>
+            <td>${projectsHtml}</td>
+            <td style="color:var(--text-muted);font-size:12px;">${lastLogin}</td>
+            <td style="color:var(--text-muted);font-size:12px;">${createdAt}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button onclick="toggleClient('${c.id}', this)" title="${toggleTitle}"
+                        style="width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${toggleBg};color:${toggleClr};">
+                        ${toggleIcon}
+                    </button>
+                    <button onclick="openClientReset('${c.id}', '${escHtml(c.name).replace(/'/g,"\\'")}', this)" title="Reset password"
+                        style="width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(16,185,129,0.1);color:#10b981;">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    </button>
+                    <button onclick="deleteClient('${c.id}', this)" title="Delete client"
+                        style="width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.1);color:#ef4444;">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('clientTableWrap').innerHTML = `
+        <table class="tbl">
+            <thead><tr>
+                <th>Client</th>
+                <th>Created By</th>
+                <th>Status</th>
+                <th>Projects</th>
+                <th>Last Login</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+
+let modalClientId = null;
+
+async function showProjects(clientId) {
+    const c = allClients.find(x => x.id === clientId);
+    if (!c) return;
+    modalClientId = clientId;
+    document.getElementById('modalClientName').textContent = `${c.name} — Project Access`;
+    document.getElementById('modalProjectsList').innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">Loading...</div>';
+    document.getElementById('projectsModal').style.display = 'flex';
+
+    try {
+        const res = await fetch(`/admin/api/clients/${clientId}/projects`);
+        const data = await res.json();
+        renderProjectToggles(clientId, data.projects || []);
+    } catch(e) {
+        document.getElementById('modalProjectsList').innerHTML = '<div style="color:var(--red);font-size:13px;">Failed to load projects.</div>';
+    }
+}
+
+function renderProjectToggles(clientId, projects) {
+    if (!projects.length) {
+        document.getElementById('modalProjectsList').innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">No projects found.</div>';
+        return;
+    }
+    const html = projects.map(p => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);" id="proj-row-${p.id}">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:${p.has_access ? 'var(--green)' : 'var(--border)'};flex-shrink:0;" id="proj-dot-${p.id}"></div>
+                <span style="font-size:13px;color:var(--text);">${escHtml(p.name)}</span>
+            </div>
+            <button id="proj-btn-${p.id}" onclick="toggleProjectAccess('${clientId}', '${p.id}', this)"
+                style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.15s;
+                    background:${p.has_access ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)'};
+                    color:${p.has_access ? '#ef4444' : '#10b981'};"
+                data-has-access="${p.has_access}">
+                ${p.has_access ? 'Remove' : 'Add'}
+            </button>
+        </div>`).join('');
+    document.getElementById('modalProjectsList').innerHTML = html;
+}
+
+async function toggleProjectAccess(clientId, projectId, btn) {
+    const hasAccess = btn.dataset.hasAccess === 'true';
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    const method = hasAccess ? 'DELETE' : 'POST';
+    try {
+        const res = await fetch(`/admin/api/clients/${clientId}/projects/${projectId}`, { method });
+        const data = await res.json();
+        if (data.success) {
+            const nowHas = !hasAccess;
+            btn.dataset.hasAccess = String(nowHas);
+            btn.textContent = nowHas ? 'Remove' : 'Add';
+            btn.style.background = nowHas ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
+            btn.style.color = nowHas ? '#ef4444' : '#10b981';
+            const dot = document.getElementById(`proj-dot-${projectId}`);
+            if (dot) dot.style.background = nowHas ? 'var(--green)' : 'var(--border)';
+            // Update local client data
+            const c = allClients.find(x => x.id === clientId);
+            if (c) {
+                if (nowHas) {
+                    c.projects = c.projects || [];
+                    if (!c.projects.find(p => p.id === projectId)) {
+                        c.projects.push({ id: projectId, name: btn.closest('[id^="proj-row-"]')?.querySelector('span')?.textContent || '' });
+                        c.project_count = (c.project_count || 0) + 1;
+                    }
+                } else {
+                    c.projects = (c.projects || []).filter(p => p.id !== projectId);
+                    c.project_count = Math.max(0, (c.project_count || 1) - 1);
+                }
+            }
+        } else {
+            alert(data.message || 'Failed to update access.');
+            btn.textContent = hasAccess ? 'Remove' : 'Add';
+        }
+    } catch(e) {
+        alert('Connection error.');
+        btn.textContent = hasAccess ? 'Remove' : 'Add';
+    }
+    btn.disabled = false;
+}
+
+function closeProjectsModal() {
+    document.getElementById('projectsModal').style.display = 'none';
+    modalClientId = null;
+    // Refresh the table to reflect updated project counts
+    filterClients();
+}
+
+async function toggleClient(clientId, btn) {
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/admin/api/clients/${clientId}/toggle-active`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            // Update local data and re-render
+            const c = allClients.find(x => x.id === clientId);
+            if (c) c.is_active = data.is_active;
+            filterClients();
+        }
+    } catch(e) { alert('Error updating client.'); }
+    btn.disabled = false;
+}
+
+async function deleteClient(clientId, btn) {
+    const c = allClients.find(x => x.id === clientId);
+    const name = c ? c.name : 'this client';
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    btn.disabled = true;
+    try {
+        const res = await fetch(`/admin/api/clients/${clientId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            allClients = allClients.filter(x => x.id !== clientId);
+            filterClients();
+            // Update stats
+            document.getElementById('statTotal').textContent = allClients.length;
+            document.getElementById('statActive').textContent = allClients.filter(c => c.is_active !== false).length;
+            document.getElementById('statProjects').textContent = allClients.reduce((s,c) => s + (c.project_count||0), 0);
+        }
+    } catch(e) { alert('Error deleting client.'); }
+    btn.disabled = false;
+}
+
+function escHtml(str) {
+    if (!str) return '—';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let clientResetId = null;
+
+function randClientPass() {
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789@#!';
+    return Array.from({length: 10}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function openClientReset(clientId, name) {
+    clientResetId = clientId;
+    document.getElementById('clientResetSub').textContent = `Set a new temporary password for client "${name}".`;
+    document.getElementById('clientResetPassInput').value = randClientPass();
+    document.getElementById('clientResetBtn').disabled = false;
+    document.getElementById('clientResetBtn').textContent = 'Set Password';
+    document.getElementById('clientResetModal').style.display = 'flex';
+}
+
+function closeClientReset() {
+    document.getElementById('clientResetModal').style.display = 'none';
+    clientResetId = null;
+}
+
+function copyClientPass() {
+    const val = document.getElementById('clientResetPassInput').value;
+    navigator.clipboard.writeText(val).then(() => {
+        const btn = document.getElementById('clientCopyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+}
+
+async function confirmClientReset() {
+    const password = document.getElementById('clientResetPassInput').value.trim();
+    if (!password || !clientResetId) return;
+    const btn = document.getElementById('clientResetBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    try {
+        const res = await fetch(`/admin/api/clients/${clientResetId}/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeClientReset();
+            alert(`Password reset successfully.\n\nNew password: ${data.new_password}\n\nShare this with the client securely.`);
+        } else {
+            alert(data.message || 'Failed to reset password.');
+            btn.disabled = false;
+            btn.textContent = 'Set Password';
+        }
+    } catch(e) {
+        alert('Connection error.');
+        btn.disabled = false;
+        btn.textContent = 'Set Password';
+    }
+}
+
+loadClients();
+</script>
+{% endblock %}

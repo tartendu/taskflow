@@ -1,0 +1,911 @@
+/* Attendance Page — Dark Theme */
+
+.text-muted { color: var(--text-muted); }
+
+.attendance-container { padding: 0; }
+
+/* Header: check-in + stats */
+.attendance-header {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: start;
+}
+
+/* Check-In Card */
+.checkin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.checkin-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+}
+
+.checkin-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.checkin-status-indicator.checked-in .status-dot {
+    background: var(--green);
+    box-shadow: 0 0 8px rgba(16,185,129,0.4);
+    animation: pulse-dot 2s infinite;
+}
+
+.checkin-status-indicator.checked-out .status-dot { background: var(--blue); }
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+/* Check-In Button */
+.checkin-btn {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--primary);
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.checkin-btn:hover { transform: scale(1.05); box-shadow: 0 6px 28px rgba(99,102,241,0.5); }
+.checkin-btn:active { transform: scale(0.97); }
+.checkin-btn:disabled { pointer-events: none; opacity: 0.6; }
+
+.checkin-btn.checkout {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    border-color: var(--red);
+    box-shadow: 0 4px 20px rgba(239,68,68,0.3);
+}
+
+.checkin-btn.checkout:hover { box-shadow: 0 6px 28px rgba(239,68,68,0.5); }
+
+.checkin-btn.done {
+    background: var(--surface-2);
+    border-color: var(--border);
+    cursor: default;
+    box-shadow: none;
+}
+
+.checkin-btn.done:hover { transform: none; }
+
+/* Live Timer */
+.live-timer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.live-timer svg { color: var(--primary); }
+
+/* Location */
+.location-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    max-width: 100%;
+    word-break: break-word;
+}
+
+.location-info svg { flex-shrink: 0; margin-top: 2px; }
+
+/* Check-in Details */
+.checkin-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-top: 6px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.detail-item { display: flex; flex-direction: column; gap: 3px; }
+
+.detail-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.detail-value { font-size: 12px; color: var(--text); font-weight: 600; word-break: break-all; }
+
+/* Today Stats */
+.today-stats { display: flex; flex-direction: column; gap: 12px; }
+.stats-content { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.stat-value { font-size: 1.25rem; font-weight: 700; color: var(--text); }
+
+/* Sections */
+.attendance-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.section-header h3 { color: var(--text); font-size: 14px; font-weight: 700; margin: 0; }
+
+/* Date Filters */
+.date-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.date-input {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface-2);
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 150px;
+}
+
+.date-input:focus { border-color: var(--primary); }
+.date-separator { color: var(--text-muted); font-size: 12px; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* Table */
+.table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.attendance-table { width: 100%; border-collapse: collapse; }
+
+.attendance-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.attendance-table td {
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+}
+
+.attendance-table tbody tr:hover td { background: var(--surface-2); }
+.attendance-table tbody tr:last-child td { border-bottom: none; }
+
+.location-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Status Badges */
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.status-badge.present    { background: rgba(16,185,129,0.15); color: var(--green); }
+.status-badge.half-day   { background: rgba(245,158,11,0.15);  color: var(--yellow); }
+.status-badge.absent     { background: rgba(239,68,68,0.15);   color: var(--red); }
+.status-badge.checked-in { background: rgba(59,130,246,0.15);  color: var(--blue); }
+
+/* Device Warning */
+.device-warning {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(245,158,11,0.1);
+    color: var(--yellow);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    width: 100%;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+/* Device Badges */
+.device-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.device-badge.same-device      { background: rgba(16,185,129,0.15); color: var(--green); }
+.device-badge.different-device { background: rgba(239,68,68,0.15);  color: var(--red); font-weight: 600; }
+.device-badge.different-device::before { content: '\26A0 '; }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px; }
+
+/* Skeleton */
+@keyframes skeleton-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+.skeleton {
+    background: var(--surface-2);
+    border-radius: 8px;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-circle-btn { width: 120px; height: 120px; border-radius: 50% !important; margin: 12px 0; }
+.skeleton-text-lg    { height: 22px; width: 200px; }
+.skeleton-text-sm    { height: 14px; width: 150px; }
+
+.checkin-skeleton { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; }
+.stats-skeleton   { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+
+.skeleton-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.skeleton-table-row { height: 44px; margin-bottom: 6px; }
+.skeleton-table-row .skeleton { height: 100%; border-radius: 8px; }
+
+/* Leave Balance */
+.leave-balance-section { margin-bottom: 20px; }
+
+.leave-balance-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.leave-balance-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.leave-type-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sick-icon   { background: rgba(239,68,68,0.15); color: var(--red); }
+.casual-icon { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+.leave-balance-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.leave-balance-title {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.leave-balance-numbers { display: flex; align-items: baseline; gap: 4px; }
+.leave-available  { font-size: 1.4rem; font-weight: 800; color: var(--text); line-height: 1; }
+.leave-label-small { font-size: 11px; color: var(--text-muted); }
+.leave-balance-detail { font-size: 11px; color: var(--text-muted); }
+.carry-forward { margin-left: 4px; font-weight: 600; color: var(--green); font-size: 11px; }
+
+/* Leave Badges */
+.leave-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.leave-badge-sick   { background: rgba(239,68,68,0.15);  color: var(--red); }
+.leave-badge-casual { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+.flag-badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 700; white-space: nowrap; margin-left: 4px; vertical-align: middle; }
+.flag-late  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.flag-early { background: rgba(249,115,22,0.15); color: #f97316; }
+
+.mark-leave-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.mark-leave-btn:hover { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,0.1); }
+
+.revoke-leave-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    transition: color 0.15s;
+}
+
+.revoke-leave-btn:hover { color: var(--red); }
+.leave-cell { white-space: nowrap; }
+
+/* Mark Leave Modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+}
+
+.modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 0;
+    width: 360px;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h4 { font-size: 14px; font-weight: 700; margin: 0; color: var(--text); }
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover { color: var(--red); }
+.modal-body { padding: 16px 20px; }
+
+.leave-type-options { display: flex; gap: 10px; }
+
+.leave-type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+    min-height: 44px;
+}
+
+.sick-btn   { color: var(--red); }
+.sick-btn:hover   { border-color: var(--red); background: rgba(239,68,68,0.1); }
+.casual-btn { color: var(--blue); }
+.casual-btn:hover { border-color: var(--blue); background: rgba(59,130,246,0.1); }
+
+/* History Controls */
+.history-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.view-toggle-group {
+    display: flex;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.view-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.view-toggle-btn.active { background: var(--surface-3); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+/* Attendance Calendar */
+.cal-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 0 10px;
+}
+
+.cal-nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.15s;
+}
+
+.cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.cal-month-label { font-size: 14px; font-weight: 600; color: var(--text); min-width: 150px; text-align: center; }
+
+.cal-legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.cal-legend-item { display: flex; align-items: center; gap: 4px; }
+
+.cal-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.present-dot { background: rgba(16,185,129,0.3);  border: 1.5px solid var(--green); }
+.half-dot    { background: rgba(245,158,11,0.3);   border: 1.5px solid var(--yellow); }
+.absent-dot  { background: rgba(239,68,68,0.3);    border: 1.5px solid var(--red); }
+.sick-dot    { background: rgba(239,68,68,0.2);    border: 1.5px solid #dc2626; }
+.casual-dot  { background: rgba(59,130,246,0.3);   border: 1.5px solid var(--blue); }
+
+/* Calendar grid */
+.user-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.cal-header-cell {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 2px;
+}
+
+.cal-weekend-header { color: var(--surface-3); }
+
+.cal-day-cell {
+    border-radius: 10px;
+    padding: 6px 4px 4px;
+    min-height: 68px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border: 1px solid transparent;
+    position: relative;
+    transition: box-shadow 0.15s;
+    background: var(--surface-2);
+}
+
+.cal-day-empty  { background: transparent; border: none; min-height: 68px; }
+.cal-day-number { font-size: 11px; font-weight: 600; color: var(--text-muted); align-self: flex-start; line-height: 1; }
+
+/* Status variants */
+.cal-day-present  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); }
+.cal-day-halfday  { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.25); }
+.cal-day-absent   { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.2); }
+.cal-day-sick     { background: rgba(239,68,68,0.06);   border-color: rgba(220,38,38,0.2); }
+.cal-day-casual   { background: rgba(59,130,246,0.08);  border-color: rgba(59,130,246,0.25); }
+.cal-day-weekend  { background: var(--surface-2); border-color: transparent; opacity: 0.4; }
+.cal-day-today    { background: rgba(99,102,241,0.1); border-color: var(--primary); border-width: 2px; }
+.cal-day-future   { background: var(--surface-2); border-color: var(--border); opacity: 0.7; }
+.cal-day-holiday  { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.25); }
+.cal-casual-only-btn { background: rgba(59,130,246,0.1); color: var(--blue); border: 1px solid var(--blue); }
+
+/* Status badges inside cells */
+.cal-status-badge { font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; letter-spacing: 0.3px; }
+.cal-badge-present { background: rgba(16,185,129,0.2);  color: var(--green); }
+.cal-badge-halfday { background: rgba(245,158,11,0.2);  color: var(--yellow); }
+.cal-badge-absent  { background: rgba(239,68,68,0.2);   color: var(--red); }
+.cal-badge-sick    { background: rgba(239,68,68,0.2);   color: var(--red); }
+.cal-badge-casual  { background: rgba(59,130,246,0.2);  color: var(--blue); }
+.cal-badge-holiday { background: rgba(168,85,247,0.2);  color: #a855f7; }
+
+.cal-holiday-name { font-size: 10px; color: #a855f7; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.cal-time         { font-size: 10px; color: var(--text-muted); }
+.cal-today-label  { font-size: 10px; color: var(--primary); font-weight: 600; }
+
+.cal-mark-leave-btn {
+    font-size: 10px;
+    padding: 2px 5px;
+    background: none;
+    border: 1px dashed var(--red);
+    color: var(--red);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    margin-top: auto;
+    opacity: 0.7;
+}
+
+.cal-mark-leave-btn:hover { background: rgba(239,68,68,0.15); opacity: 1; }
+
+.cal-revoke-btn {
+    font-size: 11px;
+    padding: 1px 5px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: color 0.15s;
+    margin-top: auto;
+}
+
+.cal-revoke-btn:hover { color: var(--red); }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .attendance-header { grid-template-columns: 1fr; gap: 12px; }
+    .face-checkin-card { max-width: 100%; min-width: 0; }
+    .checkin-card { padding: 18px 14px; }
+    .section-header { flex-direction: column; align-items: flex-start; }
+    .history-controls { width: 100%; flex-direction: column; align-items: flex-start; }
+    .date-filters { width: 100%; flex-wrap: wrap; }
+    .date-input { flex: 1; min-width: 0; max-width: none; }
+    .attendance-section { padding: 16px 14px; }
+    .stat-card { padding: 12px 14px; }
+    .hide-mobile { display: none; }
+    .attendance-table th, .attendance-table td { padding: 8px; font-size: 11px; }
+    .location-cell { max-width: 100px; }
+}
+
+@media (max-width: 480px) {
+    .checkin-btn { width: 110px; height: 110px; }
+    .live-timer  { font-size: 1.2rem; }
+    .stats-content { flex-direction: row; overflow-x: auto; gap: 10px; padding-bottom: 4px; }
+    .stat-card   { min-width: 130px; flex: none; }
+    .leave-balance-cards { grid-template-columns: 1fr; }
+    .attendance-table thead { display: none; }
+    .attendance-table tbody tr { display: flex; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 4px 0; }
+    .attendance-table tbody tr:last-child { border-bottom: none; }
+    .attendance-table td { border-bottom: none; padding: 4px 8px; font-size: 12px; }
+    .attendance-table td::before { content: attr(data-label); display: block; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; margin-bottom: 2px; }
+    .attendance-table td:first-child { width: 100%; font-weight: 600; }
+    .attendance-table td:not(:first-child) { width: calc(50% - 1rem); }
+    .attendance-table td.location-cell, .attendance-table td:nth-child(6) { display: none; }
+    .attendance-table td.leave-cell { width: 100%; }
+    .cal-day-cell { min-height: 50px; padding: 4px 2px 3px; border-radius: 8px; }
+    .cal-header-cell { font-size: 9px; padding: 4px 1px; }
+    .cal-day-number { font-size: 10px; }
+    .cal-status-badge { font-size: 8px; padding: 1px 3px; }
+    .cal-mark-leave-btn { font-size: 8px; padding: 1px 3px; }
+    .cal-time { display: none; }
+    .modal-card { width: 100%; border-radius: 16px 16px 0 0; max-height: 85vh; }
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .leave-type-options { flex-direction: column; }
+    .leave-type-btn { flex-direction: row; justify-content: center; }
+    .checkin-details { grid-template-columns: 1fr; }
+    .view-toggle-group { width: 100%; }
+    .view-toggle-btn { flex: 1; justify-content: center; }
+}
+
+@media (max-width: 360px) {
+    .checkin-btn { width: 100px; height: 100px; font-size: 12px; }
+    .live-timer  { font-size: 1.1rem; }
+    .stat-card   { min-width: 110px; }
+    .cal-day-cell { min-height: 42px; }
+}
+
+
+/* =============================================
+   Face Check-In Card
+   ============================================= */
+
+.face-checkin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    min-width: 260px;
+    max-width: 360px;
+}
+
+.face-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.face-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.face-enrollment-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.face-enrollment-badge.enrolled {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.face-enrollment-badge.not-enrolled {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+/* Camera container */
+.face-camera-container {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    margin-bottom: 12px;
+    aspect-ratio: 4/3;
+}
+
+.face-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1);  /* mirror front camera */
+}
+
+.face-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.face-oval {
+    width: 160px;
+    height: 200px;
+    border: 3px solid rgba(99, 102, 241, 0.8);
+    border-radius: 50%;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.face-hint {
+    margin-top: 12px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+/* Buttons */
+.face-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.face-btn {
+    flex: 1;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+
+.face-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.face-btn:not(:disabled):active {
+    transform: scale(0.97);
+}
+
+.face-btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+
+.face-btn-primary:not(:disabled):hover {
+    opacity: 0.9;
+}
+
+.face-btn-success {
+    background: #10b981;
+    color: #fff;
+}
+
+.face-btn-success:not(:disabled):hover {
+    opacity: 0.9;
+}
+
+.face-btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    flex: 0 0 auto;
+    min-width: 60px;
+}
+
+.face-btn-danger:not(:disabled):hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+/* Status message */
+.face-status-msg {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.face-status-info {
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+}
+
+.face-status-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.face-status-error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+/* Enroll section */
+.face-enroll-section {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 4px;
+}
+
+.face-enroll-msg {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+
+@media (max-width: 480px) {
+    .face-oval { width: 120px; height: 150px; }
+}

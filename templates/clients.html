@@ -1,0 +1,731 @@
+{% extends "base.html" %}
+
+{% block title %}Client Access - TaskFlow{% endblock %}
+
+{% block page_title %}Client Access{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/projects.css') }}">
+<style>
+    .clients-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+    }
+    .clients-header h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 8px;
+    }
+    .clients-header .subtitle {
+        color: var(--text-muted);
+        margin: 0;
+    }
+    .clients-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+    }
+    .client-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        transition: border-color 0.15s;
+    }
+    .client-card:hover {
+        border-color: var(--primary);
+    }
+    .client-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+    .client-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0 0 4px;
+    }
+    .client-info .email {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+    .client-status {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .client-status.active {
+        background: rgba(16,185,129,0.15);
+        color: var(--green);
+    }
+    .client-status.inactive {
+        background: rgba(239,68,68,0.15);
+        color: var(--red);
+    }
+    .client-projects {
+        margin: 16px 0;
+        padding: 16px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+    .client-projects h4 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin: 0 0 10px;
+        font-weight: 600;
+    }
+    .project-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .project-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(99,102,241,0.12);
+        color: var(--primary);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        border: 1px solid rgba(99,102,241,0.2);
+    }
+    .project-tag .remove-btn {
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .project-tag .remove-btn:hover {
+        opacity: 1;
+    }
+    .no-projects {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-style: italic;
+    }
+    .client-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .client-actions button {
+        flex: 1;
+    }
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-soft);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-outline:hover {
+        background: var(--surface-2);
+        border-color: var(--primary);
+        color: var(--text);
+    }
+    .btn-danger-outline {
+        background: transparent;
+        border: 1px solid var(--red);
+        color: var(--red);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-danger-outline:hover {
+        background: var(--red);
+        color: white;
+    }
+    .credentials-box {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        margin: 20px 0;
+    }
+    .credentials-box h4 {
+        font-size: 14px;
+        color: var(--text);
+        margin: 0 0 12px;
+    }
+    .credential-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .credential-row:last-child {
+        border-bottom: none;
+    }
+    .credential-label {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .credential-value {
+        font-family: monospace;
+        font-size: 14px;
+        color: var(--text);
+        background: var(--surface);
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+    }
+    .copy-btn {
+        background: none;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        padding: 4px;
+        margin-left: 8px;
+        transition: opacity 0.15s;
+    }
+    .copy-btn:hover {
+        opacity: 0.75;
+    }
+    .client-login-url {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+    }
+    .client-login-url label {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 6px;
+    }
+    .client-login-url input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 13px;
+        background: var(--surface);
+        color: var(--text);
+        outline: none;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+    }
+    .empty-state svg {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+    .last-login {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+    /* Project Checkboxes */
+    .project-checkboxes {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 4px 0;
+    }
+    .project-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-2);
+        transition: all 0.2s;
+    }
+    .project-checkbox-item:hover {
+        background: var(--surface);
+        border-color: var(--primary);
+    }
+    .project-checkbox-item input[type="checkbox"] {
+        display: none;
+    }
+    .project-checkbox-item .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        min-width: 20px;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        background: var(--surface);
+    }
+    .project-checkbox-item input[type="checkbox"]:checked + .checkbox-custom {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+    .project-checkbox-item input[type="checkbox"]:checked + .checkbox-custom::after {
+        content: '';
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        margin-bottom: 2px;
+    }
+    .project-checkbox-item .checkbox-label {
+        font-size: 14px;
+        color: var(--text-soft);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .project-checkbox-item input[type="checkbox"]:checked ~ .checkbox-label {
+        color: var(--primary);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="clients-container">
+    <div class="clients-header">
+        <div>
+            <h2>Client Access</h2>
+            <p class="subtitle">Share project progress with your clients</p>
+        </div>
+        <button id="createClientBtn" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Add Client
+        </button>
+    </div>
+
+    <div class="clients-grid" id="clientsGrid">
+        <!-- Client cards will be loaded here -->
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M17 20H22V18C22 16.3431 20.6569 15 19 15C18.0444 15 17.1931 15.4468 16.6438 16.1429M17 20H7M17 20V18C17 17.3438 16.8736 16.717 16.6438 16.1429M7 20H2V18C2 16.3431 3.34315 15 5 15C5.95561 15 6.80686 15.4468 7.35625 16.1429M7 20V18C7 17.3438 7.12642 16.717 7.35625 16.1429M7.35625 16.1429C8.0935 14.301 9.89482 13 12 13C14.1052 13 15.9065 14.301 16.6438 16.1429M15 7C15 8.65685 13.6569 10 12 10C10.3431 10 9 8.65685 9 7C9 5.34315 10.3431 4 12 4C13.6569 4 15 5.34315 15 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>No Clients Yet</h3>
+        <p>Add clients to share project progress with them</p>
+        <button class="btn btn-primary" onclick="document.getElementById('createClientBtn').click()">
+            Add Client
+        </button>
+    </div>
+</div>
+
+<!-- Create Client Modal -->
+<div id="clientModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="clientModalTitle">Add New Client</h3>
+            <span class="close" onclick="closeClientModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="clientForm">
+                <div class="form-group">
+                    <label for="clientName">Client Name</label>
+                    <input type="text" id="clientName" name="name" required placeholder="e.g., John Smith">
+                </div>
+                <div class="form-group">
+                    <label for="clientEmail">Email Address</label>
+                    <input type="email" id="clientEmail" name="email" required placeholder="client@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Grant Access to Projects</label>
+                    <div id="projectCheckboxes" class="project-checkboxes">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Credentials Modal -->
+<div id="credentialsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Client Credentials</h3>
+            <span class="close" onclick="closeCredentialsModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 20px; color: var(--red);">
+                <strong>Important:</strong> Save these credentials now. The password cannot be retrieved later.
+            </p>
+            <div class="credentials-box">
+                <h4>Login Credentials</h4>
+                <div class="credential-row">
+                    <span class="credential-label">Email:</span>
+                    <span>
+                        <span class="credential-value" id="credEmail">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('credEmail').textContent)">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <rect x="5" y="5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M11 2H3C2.44772 2 2 2.44772 2 3V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </span>
+                </div>
+                <div class="credential-row">
+                    <span class="credential-label">Password:</span>
+                    <span>
+                        <span class="credential-value" id="credPassword">-</span>
+                        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('credPassword').textContent)">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <rect x="5" y="5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1.5"/>
+                                <path d="M11 2H3C2.44772 2 2 2.44772 2 3V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </span>
+                </div>
+                <div class="client-login-url">
+                    <label>Client Login URL:</label>
+                    <input type="text" id="credUrl" readonly onclick="this.select()">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeCredentialsModal()">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Project Access Modal -->
+<div id="addProjectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Project Access</h3>
+            <span class="close" onclick="closeAddProjectModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addProjectForm">
+                <input type="hidden" id="addProjectClientId">
+                <div class="form-group">
+                    <label for="addProjectSelect">Select Project</label>
+                    <select id="addProjectSelect" name="project_id" required>
+                        <option value="">Choose a project...</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddProjectModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Grant Access</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let clients = [];
+    let projects = [];
+    let projectsLoaded = false;
+
+    // Load data on page load
+    loadClients();
+    loadProjects();
+
+    async function loadClients() {
+        try {
+            const response = await fetch('/api/clients');
+            clients = await response.json();
+            renderClients();
+        } catch (error) {
+            console.error('Error loading clients:', error);
+        }
+    }
+
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/projects');
+            const allProjects = await response.json();
+            // Show all projects where user is owner or admin
+            projects = allProjects.filter(p => p.is_owner === true || p.is_admin === true);
+            projectsLoaded = true;
+            console.log('All projects from API:', allProjects);
+            console.log('Filtered projects (owner or admin):', projects);
+        } catch (error) {
+            console.error('Error loading projects:', error);
+            projectsLoaded = true;
+        }
+    }
+
+    function renderClients() {
+        const grid = document.getElementById('clientsGrid');
+        const emptyState = document.getElementById('emptyState');
+
+        if (clients.length === 0) {
+            grid.style.display = 'none';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        grid.style.display = 'grid';
+        emptyState.style.display = 'none';
+
+        grid.innerHTML = clients.map(client => `
+            <div class="client-card">
+                <div class="client-card-header">
+                    <div class="client-info">
+                        <h3>${escapeHtml(client.name)}</h3>
+                        <div class="email">${escapeHtml(client.email)}</div>
+                        ${client.last_login ? `<div class="last-login">Last login: ${new Date(client.last_login).toLocaleDateString()}</div>` : '<div class="last-login">Never logged in</div>'}
+                    </div>
+                    <span class="client-status ${client.is_active ? 'active' : 'inactive'}">
+                        ${client.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
+                <div class="client-projects">
+                    <h4>Project Access</h4>
+                    ${client.projects && client.projects.length > 0 ? `
+                        <div class="project-tags">
+                            ${client.projects.map(p => `
+                                <span class="project-tag">
+                                    ${escapeHtml(p.name)}
+                                    <span class="remove-btn" onclick="removeProjectAccess('${client.id}', '${p.access_id}')" title="Remove access">
+                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                            <path d="M10 4L4 10M4 4L10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        </svg>
+                                    </span>
+                                </span>
+                            `).join('')}
+                        </div>
+                    ` : '<span class="no-projects">No projects assigned</span>'}
+                </div>
+                <div class="client-actions">
+                    <button class="btn btn-outline btn-sm" onclick="openAddProjectModal('${client.id}')">
+                        Add Project
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="resetPassword('${client.id}')">
+                        Reset Password
+                    </button>
+                    <button class="btn btn-danger-outline btn-sm" onclick="deleteClient('${client.id}')">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Create Client Modal
+    document.getElementById('createClientBtn').addEventListener('click', async () => {
+        document.getElementById('clientForm').reset();
+
+        // Wait for projects to load if not already loaded
+        if (!projectsLoaded) {
+            document.getElementById('projectCheckboxes').innerHTML = '<p style="color: #95a5a6; font-size: 14px;">Loading projects...</p>';
+            document.getElementById('clientModal').style.display = 'block';
+            await loadProjects();
+        } else {
+            document.getElementById('clientModal').style.display = 'block';
+        }
+
+        renderProjectCheckboxes();
+    });
+
+    function closeClientModal() {
+        document.getElementById('clientModal').style.display = 'none';
+    }
+
+    function renderProjectCheckboxes() {
+        const container = document.getElementById('projectCheckboxes');
+        console.log('Rendering checkboxes, projects:', projects);
+
+        if (!projects || projects.length === 0) {
+            container.innerHTML = '<p style="color: #95a5a6; font-size: 14px;">No projects available. Create a project first.</p>';
+            return;
+        }
+        container.innerHTML = projects.map(p => `
+            <label class="project-checkbox-item">
+                <input type="checkbox" name="project_ids" value="${p.id}">
+                <span class="checkbox-custom"></span>
+                <span class="checkbox-label">${escapeHtml(p.name)}</span>
+            </label>
+        `).join('');
+    }
+
+    document.getElementById('clientForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const projectIds = Array.from(document.querySelectorAll('input[name="project_ids"]:checked')).map(cb => cb.value);
+
+        try {
+            const response = await fetch('/api/clients', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    email: formData.get('email'),
+                    project_ids: projectIds
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                closeClientModal();
+                showCredentials(data.client.email, data.password);
+                loadClients();
+            } else {
+                alert(data.error || 'Failed to create client');
+            }
+        } catch (error) {
+            console.error('Error creating client:', error);
+            alert('Failed to create client');
+        }
+    });
+
+    // Credentials Modal
+    function showCredentials(email, password) {
+        document.getElementById('credEmail').textContent = email;
+        document.getElementById('credPassword').textContent = password;
+        document.getElementById('credUrl').value = window.location.origin + '/client/login';
+        document.getElementById('credentialsModal').style.display = 'block';
+    }
+
+    function closeCredentialsModal() {
+        document.getElementById('credentialsModal').style.display = 'none';
+    }
+
+    // Add Project Access Modal
+    function openAddProjectModal(clientId) {
+        document.getElementById('addProjectClientId').value = clientId;
+        const client = clients.find(c => c.id === clientId);
+        const assignedProjectIds = client.projects ? client.projects.map(p => p.id) : [];
+
+        const select = document.getElementById('addProjectSelect');
+        const availableProjects = projects.filter(p => !assignedProjectIds.includes(p.id));
+
+        if (availableProjects.length === 0) {
+            alert('All your projects are already assigned to this client.');
+            return;
+        }
+
+        select.innerHTML = '<option value="">Choose a project...</option>' +
+            availableProjects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+
+        document.getElementById('addProjectModal').style.display = 'block';
+    }
+
+    function closeAddProjectModal() {
+        document.getElementById('addProjectModal').style.display = 'none';
+    }
+
+    document.getElementById('addProjectForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const clientId = document.getElementById('addProjectClientId').value;
+        const projectId = document.getElementById('addProjectSelect').value;
+
+        try {
+            const response = await fetch(`/api/clients/${clientId}/projects`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: projectId })
+            });
+
+            if (response.ok) {
+                closeAddProjectModal();
+                loadClients();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to add project access');
+            }
+        } catch (error) {
+            console.error('Error adding project access:', error);
+        }
+    });
+
+    async function removeProjectAccess(clientId, accessId) {
+        if (!confirm('Remove this project access?')) return;
+
+        try {
+            const response = await fetch(`/api/clients/${clientId}/projects/${accessId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadClients();
+            }
+        } catch (error) {
+            console.error('Error removing access:', error);
+        }
+    }
+
+    async function resetPassword(clientId) {
+        if (!confirm('Generate a new password for this client?')) return;
+
+        try {
+            const response = await fetch(`/api/clients/${clientId}/reset-password`, {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const client = clients.find(c => c.id === clientId);
+                showCredentials(client.email, data.password);
+            } else {
+                alert(data.error || 'Failed to reset password');
+            }
+        } catch (error) {
+            console.error('Error resetting password:', error);
+        }
+    }
+
+    async function deleteClient(clientId) {
+        if (!confirm('Delete this client? This will remove all their project access.')) return;
+
+        try {
+            const response = await fetch(`/api/clients/${clientId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadClients();
+            }
+        } catch (error) {
+            console.error('Error deleting client:', error);
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Could add a toast notification here
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

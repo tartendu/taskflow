@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance - TaskFlow{% endblock %}
+
+{% block page_title %}Attendance{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+{% endblock %}
+
+{% block content %}
+    <div class="attendance-container">
+        <!-- Check-In/Out Section -->
+        <div class="attendance-header">
+            <div class="checkin-card">
+                <!-- Skeleton -->
+                <div class="checkin-skeleton" id="checkinSkeleton">
+                    <div class="skeleton skeleton-circle-btn"></div>
+                    <div class="skeleton skeleton-text-lg"></div>
+                    <div class="skeleton skeleton-text-sm"></div>
+                </div>
+                <!-- Content -->
+                <div class="checkin-content" id="checkinContent" style="display: none;">
+                    <div class="checkin-status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text" id="statusText">Not Checked In</span>
+                    </div>
+                    <button class="checkin-btn" id="checkinBtn" onclick="handleCheckAction()">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <span id="checkinBtnText">Check In</span>
+                    </button>
+                    <div class="live-timer" id="liveTimer" style="display: none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                            <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span id="timerDisplay">0h 0m 0s</span>
+                    </div>
+                    <div class="location-info" id="locationInfo" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2Z" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <span id="locationText">Location not available</span>
+                    </div>
+                    <div class="checkin-details" id="checkinDetails" style="display: none;">
+                        <div class="detail-item">
+                            <span class="detail-label">Check-in Time</span>
+                            <span class="detail-value" id="checkinTime">--:--</span>
+                        </div>
+                        <div class="detail-item" id="checkoutDetailItem" style="display: none;">
+                            <span class="detail-label">Check-out Time</span>
+                            <span class="detail-value" id="checkoutTime">--:--</span>
+                        </div>
+                        <div class="detail-item" id="workHoursItem" style="display: none;">
+                            <span class="detail-label">Work Hours</span>
+                            <span class="detail-value" id="workHoursDisplay">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">IP Address</span>
+                            <span class="detail-value" id="ipAddress">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Device</span>
+                            <span class="detail-value" id="deviceInfo">--</span>
+                        </div>
+                    </div>
+                    <div class="device-warning" id="deviceWarning" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span>Different device detected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Check-In Card -->
+            <div class="face-checkin-card" id="faceCheckinCard" style="display:none;">
+                <div class="face-card-header">
+                    <div class="face-card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="8" r="3" stroke="currentColor" stroke-width="2"/>
+                            <path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M9 11.5c0 0 1 1.5 3 1.5s3-1.5 3-1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        Face Check-In
+                    </div>
+                    <span class="face-enrollment-badge" id="faceEnrollBadge">Checking...</span>
+                </div>
+
+                <!-- Camera view -->
+                <div class="face-camera-container" id="faceCameraContainer" style="display:none;">
+                    <video id="faceVideo" autoplay playsinline muted class="face-video"></video>
+                    <canvas id="faceCanvas" style="display:none;"></canvas>
+                    <div class="face-overlay" id="faceOverlay">
+                        <div class="face-oval"></div>
+                        <span class="face-hint" id="faceHint">Position your face in the oval</span>
+                    </div>
+                </div>
+
+                <!-- Status message -->
+                <div class="face-status-msg" id="faceStatusMsg" style="display:none;"></div>
+
+                <!-- Action buttons -->
+                <div class="face-btn-row" id="faceBtnRow">
+                    <button class="face-btn face-btn-primary" id="faceStartBtn" onclick="startFaceCamera()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Start Camera
+                    </button>
+                    <button class="face-btn face-btn-success" id="faceCaptureBtn" onclick="captureAndVerify()" style="display:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12l2 2 4-4M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Verify &amp; Check In
+                    </button>
+                    <button class="face-btn face-btn-danger" id="faceStopBtn" onclick="stopFaceCamera()" style="display:none;">Stop</button>
+                </div>
+
+                <!-- Enroll section (shown only if not enrolled) -->
+                <div class="face-enroll-section" id="faceEnrollSection" style="display:none;">
+                    <p class="face-enroll-msg">You haven't enrolled your face yet. Enroll once to use face check-in.</p>
+                    <button class="face-btn face-btn-primary" id="faceEnrollBtn" onclick="startFaceEnroll()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Enroll My Face
+                    </button>
+                </div>
+            </div>
+
+            <!-- Today's Summary Stats -->
+            <div class="today-stats">
+                <!-- Skeleton -->
+                <div class="stats-skeleton" id="statsSkeleton">
+                    <div class="skeleton-stat-card">
+                        <div class="skeleton skeleton-text-sm"></div>
+                        <div class="skeleton skeleton-text-lg"></div>
+                    </div>
+                    <div class="skeleton-stat-card">
+                        <div class="skeleton skeleton-text-sm"></div>
+                        <div class="skeleton skeleton-text-lg"></div>
+                    </div>
+                    <div class="skeleton-stat-card">
+                        <div class="skeleton skeleton-text-sm"></div>
+                        <div class="skeleton skeleton-text-lg"></div>
+                    </div>
+                </div>
+                <!-- Content -->
+                <div class="stats-content" id="statsContent" style="display: none;">
+                    <div class="stat-card">
+                        <span class="stat-label">Today's Status</span>
+                        <span class="stat-value" id="todayStatus">--</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Work Hours Today</span>
+                        <span class="stat-value" id="todayHours">--</span>
+                    </div>
+                    {% if is_superadmin %}
+                    <div class="stat-card">
+                        <span class="stat-label">Team Present</span>
+                        <span class="stat-value" id="teamPresent">--</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Balance Section -->
+        <div class="attendance-section leave-balance-section">
+            <div class="section-header">
+                <h3>Leave Balance</h3>
+                <div class="date-filters">
+                    <select id="leaveBalanceMonth" class="date-input" onchange="loadLeaveBalance()">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="leaveBalanceYear" class="date-input" style="width:80px;" min="2020" max="2099">
+                </div>
+            </div>
+            <div class="leave-balance-cards" id="leaveBalanceCards">
+                <div class="leave-balance-card">
+                    <div class="leave-type-icon sick-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <div class="leave-balance-info">
+                        <span class="leave-balance-title">Sick Leave</span>
+                        <div class="leave-balance-numbers">
+                            <span class="leave-available" id="sickAvailable">--</span>
+                            <span class="leave-label-small">available</span>
+                        </div>
+                        <div class="leave-balance-detail">
+                            <span id="sickUsed">0</span> used / <span id="sickTotal">--</span> total
+                            <span class="carry-forward" id="sickCarry" style="display:none;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="leave-balance-card">
+                    <div class="leave-type-icon casual-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <div class="leave-balance-info">
+                        <span class="leave-balance-title">Casual Leave</span>
+                        <div class="leave-balance-numbers">
+                            <span class="leave-available" id="casualAvailable">--</span>
+                            <span class="leave-label-small">available</span>
+                        </div>
+                        <div class="leave-balance-detail">
+                            <span id="casualUsed">0</span> used / <span id="casualTotal">--</span> total
+                            <span class="carry-forward" id="casualCarry" style="display:none;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance History Section -->
+        <div class="attendance-section">
+            <div class="section-header">
+                <h3>Attendance History</h3>
+                <div class="history-controls">
+                    <!-- View Toggle -->
+                    <div class="view-toggle-group">
+                        <button class="view-toggle-btn active" id="tableViewBtn" onclick="switchHistoryView('table')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 5h18M3 10h18M3 15h18M3 20h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Table
+                        </button>
+                        <button class="view-toggle-btn" id="calendarViewBtn" onclick="switchHistoryView('calendar')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Calendar
+                        </button>
+                    </div>
+                    <!-- Table filters (shown in table view) -->
+                    <div class="date-filters" id="tableFilters">
+                        <input type="date" id="startDate" class="date-input">
+                        <span class="date-separator">to</span>
+                        <input type="date" id="endDate" class="date-input">
+                        <button class="btn btn-secondary btn-sm" onclick="loadHistory()">Apply</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Skeleton -->
+            <div class="table-skeleton" id="historySkeleton">
+                <div class="skeleton-table-row" style="height: 40px;">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+            </div>
+            <!-- Content -->
+            <div class="table-container" id="historyContent" style="display: none;">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Work Hours</th>
+                            <th class="hide-mobile">Location</th>
+                            <th class="hide-mobile">Device</th>
+                            <th>Status</th>
+                            <th>Leave</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                    </tbody>
+                </table>
+                <div class="empty-state" id="historyEmpty" style="display: none;">
+                    <p>No attendance records found for the selected period.</p>
+                </div>
+                <!-- Pagination -->
+                <div class="pagination-controls" id="paginationControls" style="display: none;">
+                    <span class="pagination-info" id="paginationInfo"></span>
+                    <div class="pagination-buttons">
+                        <button class="btn btn-secondary btn-sm" id="prevPageBtn" onclick="loadHistoryPage('prev')" disabled>Previous</button>
+                        <span class="page-indicator" id="pageIndicator"></span>
+                        <button class="btn btn-secondary btn-sm" id="nextPageBtn" onclick="loadHistoryPage('next')">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="attendanceCalendarView" style="display: none;">
+                <!-- Month Navigation -->
+                <div class="cal-month-nav">
+                    <button class="cal-nav-btn" onclick="prevMonth()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <span class="cal-month-label" id="calMonthLabel">February 2026</span>
+                    <button class="cal-nav-btn" onclick="nextMonth()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Calendar Legend -->
+                <div class="cal-legend">
+                    <span class="cal-legend-item"><span class="cal-dot present-dot"></span>Present</span>
+                    <span class="cal-legend-item"><span class="cal-dot half-dot"></span>Half Day</span>
+                    <span class="cal-legend-item"><span class="cal-dot absent-dot"></span>Absent</span>
+                    <span class="cal-legend-item"><span class="cal-dot sick-dot"></span>Sick Leave</span>
+                    <span class="cal-legend-item"><span class="cal-dot casual-dot"></span>Casual Leave</span>
+                    <span class="cal-legend-item"><span class="cal-dot pending-dot"></span>Pending</span>
+                </div>
+                <!-- Day Headers -->
+                <div class="user-calendar-grid">
+                    <div class="cal-header-cell">Mon</div>
+                    <div class="cal-header-cell">Tue</div>
+                    <div class="cal-header-cell">Wed</div>
+                    <div class="cal-header-cell">Thu</div>
+                    <div class="cal-header-cell">Fri</div>
+                    <div class="cal-header-cell">Sat</div>
+                    <div class="cal-header-cell cal-weekend-header">Sun</div>
+                    <!-- Day cells rendered by JS -->
+                    <div id="calDayCells" style="display: contents;"></div>
+                </div>
+                <div class="empty-state" id="calendarEmpty" style="display: none;">
+                    <p>No data for this month.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regularization Requests Section -->
+        <div class="attendance-section" id="regularizationSection">
+            <div class="section-header">
+                <h3>Regularization Requests</h3>
+                <button class="btn btn-secondary btn-sm" onclick="openRegularizationModal()">+ New Request</button>
+            </div>
+            <div id="regListContainer">
+                <div class="empty-state" id="regListEmpty" style="display:none;">
+                    <p>No regularization requests yet.</p>
+                </div>
+                <div class="table-container" id="regListContent" style="display:none;">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Check-In</th>
+                                <th>Check-Out</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="regListBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if is_superadmin %}
+        <!-- Team Attendance Section (Admin Only) -->
+        <div class="attendance-section">
+            <div class="section-header">
+                <h3>Team Attendance Today</h3>
+                <div class="date-filters">
+                    <input type="date" id="teamDate" class="date-input">
+                    <button class="btn btn-secondary btn-sm" onclick="loadTeamAttendance()">View</button>
+                </div>
+            </div>
+            <!-- Skeleton -->
+            <div class="table-skeleton" id="teamSkeleton">
+                <div class="skeleton-table-row" style="height: 40px;">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+                <div class="skeleton-table-row">
+                    <div class="skeleton skeleton-text-sm" style="width: 100%;"></div>
+                </div>
+            </div>
+            <!-- Content -->
+            <div class="table-container" id="teamContent" style="display: none;">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Team Member</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Work Hours</th>
+                            <th class="hide-mobile">Location</th>
+                            <th class="hide-mobile">Device</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teamBody">
+                    </tbody>
+                </table>
+                <div class="empty-state" id="teamEmpty" style="display: none;">
+                    <p>No team attendance records for this date.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Regularization Request Modal -->
+    <div class="modal-overlay" id="regularizationModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h4>Regularization Request</h4>
+                <button class="modal-close" onclick="closeRegularizationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:14px;">
+                    Submit a request if you forgot to check in/out. Admin will review and approve.
+                </p>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.82rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:5px;">Date <span style="color:#ef4444;">*</span></label>
+                    <input type="date" id="regDate" max=""
+                        style="width:100%; padding:9px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                               font-size:0.88rem; background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c); outline:none;">
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1;">
+                        <label style="font-size:0.82rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:5px;">Intended Check-In <span style="color:#ef4444;">*</span></label>
+                        <input type="time" id="regCheckIn"
+                            style="width:100%; padding:9px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                                   font-size:0.88rem; background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c); outline:none;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:0.82rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:5px;">Intended Check-Out</label>
+                        <input type="time" id="regCheckOut"
+                            style="width:100%; padding:9px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                                   font-size:0.88rem; background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c); outline:none;">
+                    </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="font-size:0.82rem; font-weight:600; color:var(--text-primary); display:block; margin-bottom:5px;">Reason <span style="color:#ef4444;">*</span></label>
+                    <textarea id="regReason" rows="3" placeholder="Explain why you couldn't check in/out"
+                        style="width:100%; padding:10px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                               font-size:0.88rem; resize:vertical; outline:none; font-family:inherit;
+                               background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c);"></textarea>
+                </div>
+                <button id="regSubmitBtn" onclick="submitRegularization()"
+                    style="width:100%; padding:10px; background:#6366f1; color:#fff; border:none; border-radius:8px;
+                           font-size:0.9rem; font-weight:600; cursor:pointer;">
+                    Submit Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark Leave Modal -->
+    <div class="modal-overlay" id="markLeaveModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h4>Mark Leave</h4>
+                <button class="modal-close" onclick="closeMarkLeaveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="markLeaveDate" style="margin-bottom:12px; color: var(--text-secondary);"></p>
+                <p id="casualLeaveNote" style="display:none; margin-bottom:12px; font-size:0.82rem; color:#2980b9; background:#e8f4fd; padding:8px 12px; border-radius:6px;">
+                    Only Casual Leave can be applied in advance.
+                </p>
+
+                <!-- Step 1: pick leave type -->
+                <div id="leaveTypeStep" class="leave-type-options">
+                    <button id="sickLeaveBtn" class="leave-type-btn sick-btn" onclick="selectLeaveType('sick')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Sick Leave
+                    </button>
+                    <button class="leave-type-btn casual-btn" onclick="selectLeaveType('casual')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Casual Leave
+                    </button>
+                </div>
+
+                <!-- Step 2: enter reason + duration -->
+                <div id="leaveReasonStep" style="display:none;">
+                    <p id="leaveReasonLabel" style="font-size:0.85rem; font-weight:600; margin-bottom:8px; color:var(--text-primary);"></p>
+                    <!-- Duration Toggle -->
+                    <div class="leave-duration-toggle" style="display:flex; gap:8px; margin-bottom:12px;">
+                        <button class="duration-btn active" id="fullDayBtn" onclick="selectLeaveDuration('full')"
+                            style="flex:1; padding:8px; border:2px solid #e2e8f0; border-radius:8px; background:#f0fdf4; font-size:0.82rem; font-weight:600; cursor:pointer; color:#16a34a;">
+                            Full Day
+                        </button>
+                        <button class="duration-btn" id="halfDayBtn" onclick="selectLeaveDuration('half')"
+                            style="flex:1; padding:8px; border:2px solid #e2e8f0; border-radius:8px; background:#fff; font-size:0.82rem; font-weight:600; cursor:pointer; color:#64748b;">
+                            Half Day
+                        </button>
+                    </div>
+                    <textarea id="leaveReasonInput" rows="3" placeholder="Enter reason (optional)"
+                        style="width:100%; padding:10px 12px; border:1px solid var(--border-color,#e2e8f0); border-radius:8px;
+                               font-size:0.88rem; resize:vertical; outline:none; font-family:inherit;
+                               background:var(--input-bg,#f8fafc); color:var(--text-primary,#1a202c);"></textarea>
+                    <p style="font-size:0.75rem; color:#f59e0b; margin-top:6px;">Leave requests require admin approval.</p>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="leave-type-btn" onclick="backToLeaveType()"
+                            style="flex:1; background:var(--bg-secondary,#f1f5f9); color:var(--text-secondary,#64748b);">
+                            &#8592; Back
+                        </button>
+                        <button id="leaveSubmitBtn" class="leave-type-btn" onclick="submitMarkLeave()"
+                            style="flex:2;">
+                            Request Leave
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>const IS_SUPERADMIN = {{ 'true' if is_superadmin else 'false' }};</script>
+    <!-- face-api.js — loaded from CDN, falls back fine if offline -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script>const FACE_MODELS_URL = "{{ url_for('static', filename='models/face-api') }}";</script>
+    <script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,355 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Roles & Access{% endblock %}
+{% block page_title %}Roles & Access Control{% endblock %}
+{% block page_subtitle %}Create custom roles and control which pages each role can access{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn-primary" onclick="openCreate()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    New Role
+</button>
+{% endblock %}
+
+{% block head %}
+<style>
+    .roles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; margin-bottom: 32px; }
+
+    .role-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color 0.2s; }
+    .role-card:hover { border-color: rgba(99,102,241,0.3); }
+
+    .role-card-header { padding: 18px 20px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .role-name-wrap { display: flex; align-items: center; gap: 10px; }
+    .role-avatar { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+    .role-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .role-user-count { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .role-actions { display: flex; gap: 6px; }
+    .btn-icon-sm { width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .btn-icon-sm svg { width: 14px; height: 14px; }
+    .btn-icon-sm.edit { background: rgba(99,102,241,0.1); color: var(--primary); }
+    .btn-icon-sm.edit:hover { background: rgba(99,102,241,0.2); }
+    .btn-icon-sm.del  { background: rgba(239,68,68,0.1); color: var(--red); }
+    .btn-icon-sm.del:hover  { background: rgba(239,68,68,0.2); }
+
+    .role-perms { padding: 14px 20px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .perm-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .perm-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .perm-dot.none   { background: var(--border); }
+    .perm-dot.view   { background: #3b82f6; }
+    .perm-dot.manage { background: var(--green); }
+    .perm-label { color: var(--text-soft); }
+    .perm-label.view, .perm-label.manage { color: var(--text); }
+    .perm-level-tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 1px 6px; border-radius: 4px; margin-left: auto; }
+    .perm-level-tag.view   { background: rgba(59,130,246,0.15); color: #93c5fd; }
+    .perm-level-tag.manage { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+
+    .empty-roles { text-align: center; padding: 64px 32px; color: var(--text-muted); }
+    .empty-roles svg { width: 52px; height: 52px; opacity: 0.25; margin-bottom: 16px; display: block; margin-left: auto; margin-right: auto; }
+    .empty-roles p { font-size: 14px; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 600; align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.visible { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 40px 80px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-soft); margin-bottom: 8px; }
+    .form-group input { width: 100%; padding: 11px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+    .form-group input:focus { border-color: var(--primary); }
+
+    .perm-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-soft); margin-bottom: 12px; }
+    .perm-section-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5; }
+    .perm-section-hint .lvl-pill { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 0 2px; }
+    .perm-section-hint .lvl-pill.view { background: rgba(59,130,246,0.18); color: #93c5fd; }
+    .perm-section-hint .lvl-pill.manage { background: rgba(16,185,129,0.18); color: #6ee7b7; }
+
+    .perm-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 24px; }
+    .perm-row-edit { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 14px; transition: border-color 0.15s; }
+    .perm-row-edit.level-view   { border-color: rgba(59,130,246,0.45); background: rgba(59,130,246,0.05); }
+    .perm-row-edit.level-manage { border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.05); }
+    .perm-row-edit-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-soft); display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .perm-row-edit.level-view .perm-row-edit-label,
+    .perm-row-edit.level-manage .perm-row-edit-label { color: var(--text); }
+    .perm-row-edit-label svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .level-seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2px; flex-shrink: 0; }
+    .level-seg button { background: transparent; border: none; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.15s; }
+    .level-seg button:hover { color: var(--text); }
+    .level-seg button.active[data-level="none"]   { background: var(--border); color: var(--text); }
+    .level-seg button.active[data-level="view"]   { background: #3b82f6; color: white; }
+    .level-seg button.active[data-level="manage"] { background: var(--green); color: white; }
+
+    .modal-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 10px 14px; color: #fca5a5; font-size: 13px; margin-bottom: 16px; display: none; }
+    .modal-error.visible { display: block; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-modal-primary { flex: 1; padding: 12px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border: none; border-radius: 8px; color: white; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-modal-primary:hover { opacity: 0.9; }
+    .btn-modal-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-modal-cancel { padding: 12px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+    .btn-modal-cancel:hover { border-color: var(--text-soft); color: var(--text); }
+
+    .info-banner { background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 24px; font-size: 13px; color: var(--text-soft); display: flex; gap: 10px; align-items: flex-start; }
+    .info-banner svg { width: 16px; height: 16px; color: var(--primary); flex-shrink: 0; margin-top: 1px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <h2 id="modalTitle">Create Role</h2>
+        <div class="modal-sub" id="modalSub">Define a role name and choose which admin management features users with this role can access.</div>
+
+        <div class="modal-error" id="modalError"></div>
+
+        <div class="form-group">
+            <label>Role Name</label>
+            <input type="text" id="roleName" placeholder="e.g. Sales Manager, Finance, HR Executive">
+        </div>
+
+        <div class="perm-section-label">Admin Management Access</div>
+        <div class="perm-section-hint">
+            For each feature, choose an access level:
+            <span class="lvl-pill" style="background:var(--border);color:var(--text);">None</span> no access ·
+            <span class="lvl-pill view">View</span> read-only ·
+            <span class="lvl-pill manage">Manage</span> full access (create / edit / delete / approve).
+        </div>
+        <div class="perm-grid" id="permGrid">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-modal-primary" id="saveBtn" onclick="saveRole()">Create Role</button>
+        </div>
+    </div>
+</div>
+
+<div class="info-banner">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    <span>Roles control which <strong>admin management features</strong> each user can access. Basic pages (Dashboard, Projects, Tasks, Attendance, Reports, Clients, Petty Cash) are always visible to everyone. Assign roles to users on the <a href="/admin/users" style="color:var(--primary);text-decoration:none;">Users page</a>. Superadmins always have full access.</span>
+</div>
+
+<div class="roles-grid" id="rolesGrid">
+    <div class="empty-roles" id="emptyState" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        <p>No custom roles yet.<br>Create your first role to control page access.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// These are admin-control permissions only.
+// Basic pages (Projects, Clients, Attendance, Reports, Petty Cash) are always visible to all users.
+const PAGES = [
+    { key: 'attendance_mgmt',  label: 'Attendance Mgmt',  icon: '<path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>' },
+    { key: 'petty_cash_mgmt',  label: 'Petty Cash Mgmt',  icon: '<path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>' },
+    { key: 'leave_requests',   label: 'Leave Requests',   icon: '<path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z"/>' },
+    { key: 'leave_summary',    label: 'Leave Summary',    icon: '<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>' },
+    { key: 'monthly_report',   label: 'Monthly Report',   icon: '<path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/>' },
+    { key: 'projects_mgmt',    label: 'Projects Mgmt',    icon: '<path d="M20 6h-2.18c.07-.44.18-.86.18-1.3C18 2.57 15.43 1 13 1c-1.36 0-2.55.57-3.43 1.47L8 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/>' },
+    { key: 'holidays_mgmt',    label: 'Holidays',         icon: '<path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>' },
+    { key: 'purchases_mgmt',   label: 'Company Purchases',icon: '<path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>' },
+    { key: 'invoices_mgmt',    label: 'Company Invoices', icon: '<path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>' },
+    { key: 'settings',         label: 'Settings',         icon: '<path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>' },
+];
+
+const LEVELS = ['none', 'view', 'manage'];
+const LEVEL_LABELS = { none: 'None', view: 'View', manage: 'Manage' };
+
+let roles = [];
+let editingId = null;
+let currentPerms = {};
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function normLevel(v) {
+    if (v === true || v === 'manage') return 'manage';
+    if (v === 'view') return 'view';
+    return 'none';
+}
+
+async function loadRoles() {
+    try {
+        const res = await fetch('/admin/api/roles');
+        const data = await res.json();
+        roles = data.roles || [];
+    } catch(e) { roles = []; }
+    renderRoles();
+}
+
+function renderRoles() {
+    const grid = document.getElementById('rolesGrid');
+    const empty = document.getElementById('emptyState');
+    if (!roles.length) {
+        empty.style.display = 'block';
+        // Remove all cards
+        grid.querySelectorAll('.role-card').forEach(c => c.remove());
+        return;
+    }
+    empty.style.display = 'none';
+    grid.querySelectorAll('.role-card').forEach(c => c.remove());
+    roles.forEach(r => {
+        const perms = r.permissions || {};
+        const card = document.createElement('div');
+        card.className = 'role-card';
+        card.id = `role-card-${r.id}`;
+        const initials = r.name.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+        const permsHtml = PAGES.map(p => {
+            const lvl = normLevel(perms[p.key]);
+            const tag = lvl === 'none' ? '' : `<span class="perm-level-tag ${lvl}">${LEVEL_LABELS[lvl]}</span>`;
+            return `<div class="perm-row"><div class="perm-dot ${lvl}"></div><span class="perm-label ${lvl}">${esc(p.label)}</span>${tag}</div>`;
+        }).join('');
+        card.innerHTML = `
+            <div class="role-card-header">
+                <div class="role-name-wrap">
+                    <div class="role-avatar">${esc(initials)}</div>
+                    <div>
+                        <div class="role-name">${esc(r.name)}</div>
+                        <div class="role-user-count">Custom role</div>
+                    </div>
+                </div>
+                <div class="role-actions">
+                    <button class="btn-icon-sm edit" title="Edit" onclick="openEdit('${esc(r.id)}')">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button class="btn-icon-sm del" title="Delete" onclick="deleteRole('${esc(r.id)}', '${esc(r.name)}')">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="role-perms">${permsHtml}</div>`;
+        grid.appendChild(card);
+    });
+}
+
+function buildPermGrid(perms) {
+    const grid = document.getElementById('permGrid');
+    grid.innerHTML = '';
+    PAGES.forEach(p => {
+        const lvl = normLevel(perms[p.key]);
+        currentPerms[p.key] = lvl;
+
+        const row = document.createElement('div');
+        row.className = `perm-row-edit level-${lvl}`;
+        row.dataset.key = p.key;
+        row.innerHTML = `
+            <span class="perm-row-edit-label">
+                <svg viewBox="0 0 24 24" fill="currentColor">${p.icon}</svg>
+                ${esc(p.label)}
+            </span>
+            <div class="level-seg" role="group">
+                ${LEVELS.map(L => `<button type="button" data-level="${L}" class="${L === lvl ? 'active' : ''}">${LEVEL_LABELS[L]}</button>`).join('')}
+            </div>`;
+
+        row.querySelectorAll('.level-seg button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const newLvl = btn.dataset.level;
+                currentPerms[p.key] = newLvl;
+                row.querySelectorAll('.level-seg button').forEach(b => b.classList.toggle('active', b.dataset.level === newLvl));
+                row.className = `perm-row-edit level-${newLvl}`;
+            });
+        });
+
+        grid.appendChild(row);
+    });
+}
+
+function openCreate() {
+    editingId = null;
+    currentPerms = {};
+    document.getElementById('modalTitle').textContent = 'Create Role';
+    document.getElementById('modalSub').textContent = 'Define a role name and choose which pages users with this role can access.';
+    document.getElementById('saveBtn').textContent = 'Create Role';
+    document.getElementById('roleName').value = '';
+    document.getElementById('modalError').classList.remove('visible');
+    buildPermGrid({});
+    document.getElementById('roleModal').classList.add('visible');
+    setTimeout(() => document.getElementById('roleName').focus(), 100);
+}
+
+function openEdit(roleId) {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return;
+    editingId = roleId;
+    currentPerms = {...(role.permissions || {})};
+    document.getElementById('modalTitle').textContent = 'Edit Role';
+    document.getElementById('modalSub').textContent = `Editing "${role.name}" — changes apply immediately to all users with this role.`;
+    document.getElementById('saveBtn').textContent = 'Save Changes';
+    document.getElementById('roleName').value = role.name;
+    document.getElementById('modalError').classList.remove('visible');
+    buildPermGrid(role.permissions || {});
+    document.getElementById('roleModal').classList.add('visible');
+    setTimeout(() => document.getElementById('roleName').focus(), 100);
+}
+
+function closeModal() {
+    document.getElementById('roleModal').classList.remove('visible');
+    editingId = null;
+}
+
+async function saveRole() {
+    const btn = document.getElementById('saveBtn');
+    const errorEl = document.getElementById('modalError');
+    errorEl.classList.remove('visible');
+
+    const name = document.getElementById('roleName').value.trim();
+    if (!name) {
+        errorEl.textContent = 'Role name is required.';
+        errorEl.classList.add('visible');
+        return;
+    }
+
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = 'Saving...';
+
+    const url = editingId ? `/admin/api/roles/${editingId}` : '/admin/api/roles';
+    const method = editingId ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, permissions: currentPerms })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeModal();
+            await loadRoles();
+        } else {
+            errorEl.textContent = data.message || 'Failed to save role.';
+            errorEl.classList.add('visible');
+        }
+    } catch(e) {
+        errorEl.textContent = 'Connection error. Please try again.';
+        errorEl.classList.add('visible');
+    }
+
+    btn.disabled = false;
+    btn.textContent = origText;
+}
+
+async function deleteRole(roleId, roleName) {
+    if (!confirm(`Delete role "${roleName}"? Users with this role will fall back to default employee permissions.`)) return;
+    try {
+        const res = await fetch(`/admin/api/roles/${roleId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            roles = roles.filter(r => r.id !== roleId);
+            document.getElementById(`role-card-${roleId}`)?.remove();
+            if (!roles.length) document.getElementById('emptyState').style.display = 'block';
+        }
+    } catch(e) {
+        alert('Error deleting role.');
+    }
+}
+
+document.getElementById('roleModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+loadRoles();
+</script>
+{% endblock %}

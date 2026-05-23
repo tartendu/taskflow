@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Payment — TaskFlow</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f0f0f;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .payment-wrapper {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+        }
+
+        /* Left — Order Summary */
+        .order-panel {
+            background: #1a1a2e;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .brand-icon svg { width: 20px; height: 20px; fill: white; }
+        .brand-name { font-size: 16px; font-weight: 700; color: white; }
+
+        .order-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #6366f1;
+            margin-bottom: 16px;
+        }
+
+        .order-pack {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .order-desc {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+
+        .order-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            font-size: 14px;
+        }
+
+        .order-line:last-of-type { border-bottom: none; }
+        .order-line .lbl { color: #94a3b8; }
+        .order-line .val { color: white; font-weight: 600; }
+
+        .order-total {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 12px;
+        }
+
+        .order-total .lbl { font-size: 13px; color: #a5b4fc; margin-bottom: 6px; }
+        .order-total .val { font-size: 36px; font-weight: 800; color: white; }
+
+        .secure-badges {
+            margin-top: auto;
+            padding-top: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .secure-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .secure-badge svg { color: #10b981; }
+
+        /* Right — Payment Form */
+        .payment-form-panel {
+            background: #1e1e1e;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-header {
+            margin-bottom: 28px;
+        }
+
+        .form-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .form-header p { font-size: 13px; color: #64748b; }
+
+        .form-group { margin-bottom: 18px; }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 13px 14px;
+            background: #2a2a2a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input::placeholder { color: #475569; }
+        .form-group input:focus { border-color: #6366f1; }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Card preview */
+        .card-preview {
+            background: linear-gradient(135deg, #1e3a5f, #0f2137);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-preview::before {
+            content: '';
+            position: absolute;
+            top: -30px; right: -30px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: rgba(99,102,241,0.15);
+        }
+
+        .card-chip {
+            width: 32px; height: 24px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .card-number-display {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 3px;
+            margin-bottom: 16px;
+            font-family: monospace;
+        }
+
+        .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+        .card-holder { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .card-holder .val { font-size: 14px; color: white; font-weight: 600; margin-top: 2px; }
+        .card-expiry { text-align: right; font-size: 12px; color: #94a3b8; }
+        .card-expiry .val { font-size: 14px; color: white; font-weight: 600; margin-top: 2px; }
+
+        /* Error */
+        .error-box {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #fca5a5;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .error-box.visible { display: flex; }
+
+        /* Pay button */
+        .btn-pay {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-pay:hover { opacity: 0.9; }
+        .btn-pay:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .btn-back:hover { color: #94a3b8; }
+
+        /* Processing overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .overlay.visible { display: flex; }
+
+        .overlay-spinner {
+            width: 56px; height: 56px;
+            border: 3px solid rgba(99,102,241,0.3);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .overlay-text { font-size: 16px; color: white; font-weight: 600; }
+        .overlay-sub { font-size: 13px; color: #64748b; }
+    </style>
+</head>
+<body>
+
+<!-- Processing overlay -->
+<div class="overlay" id="processingOverlay">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-text">Processing Payment...</div>
+    <div class="overlay-sub">Please do not close this window</div>
+</div>
+
+<div class="payment-wrapper">
+
+    <!-- Order Summary -->
+    <div class="order-panel">
+        <div class="brand-row">
+            <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+            <div class="brand-name">TaskFlow</div>
+        </div>
+
+        <div class="order-label">Order Summary</div>
+        <div class="order-pack">{{ order.label }} Pack</div>
+        <div class="order-desc">{{ order.credits }} user slots × ₹499/month</div>
+
+        <div class="order-line">
+            <span class="lbl">Credit Pack</span>
+            <span class="val">{{ order.credits }} credits</span>
+        </div>
+        <div class="order-line">
+            <span class="lbl">Price per credit</span>
+            <span class="val">₹499</span>
+        </div>
+        <div class="order-line">
+            <span class="lbl">GST (18%)</span>
+            <span class="val">Included</span>
+        </div>
+
+        <div class="order-total">
+            <div class="lbl">Total Amount</div>
+            <div class="val">₹{{ '{:,}'.format(order.amount) }}</div>
+        </div>
+
+        <div class="secure-badges">
+            <div class="secure-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                SSL Secured
+            </div>
+            <div class="secure-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                100% Safe
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Form -->
+    <div class="payment-form-panel">
+        <div class="form-header">
+            <h2>Card Payment</h2>
+            <p>Enter your card details to complete the purchase</p>
+        </div>
+
+        <!-- Card Preview -->
+        <div class="card-preview">
+            <div class="card-chip"></div>
+            <div class="card-number-display" id="cardDisplay">•••• •••• •••• ••••</div>
+            <div class="card-bottom">
+                <div class="card-holder">
+                    <div>Card Holder</div>
+                    <div class="val" id="cardHolderDisplay">FULL NAME</div>
+                </div>
+                <div class="card-expiry">
+                    <div>Expires</div>
+                    <div class="val" id="cardExpiryDisplay">MM/YY</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-box" id="errorBox">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            <span id="errorText"></span>
+        </div>
+
+        <form id="paymentForm">
+            <div class="form-group">
+                <label>Cardholder Name</label>
+                <input type="text" id="cardName" placeholder="John Doe" autocomplete="cc-name" oninput="updateCardName(this.value)">
+            </div>
+
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" autocomplete="cc-number" oninput="formatCardNumber(this)" onchange="updateCardDisplay(this.value)">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" oninput="formatExpiry(this)">
+                </div>
+                <div class="form-group">
+                    <label>CVV</label>
+                    <input type="password" id="cardCvv" placeholder="•••" maxlength="4" autocomplete="cc-csc">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-pay" id="payBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>
+                <span id="payBtnText">Pay ₹{{ '{:,}'.format(order.amount) }}</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+
+            <a href="/admin/billing" class="btn-back">
+                ← Cancel and go back
+            </a>
+        </form>
+    </div>
+</div>
+
+<script>
+    function formatCardNumber(input) {
+        let val = input.value.replace(/\D/g, '').substring(0, 16);
+        input.value = val.replace(/(.{4})/g, '$1 ').trim();
+        updateCardDisplay(input.value);
+    }
+
+    function updateCardDisplay(val) {
+        const digits = val.replace(/\D/g, '');
+        let display = '';
+        for (let i = 0; i < 16; i++) {
+            if (i > 0 && i % 4 === 0) display += ' ';
+            display += digits[i] ? (i < 12 ? '•' : digits[i]) : '•';
+        }
+        document.getElementById('cardDisplay').textContent = display;
+    }
+
+    function updateCardName(val) {
+        document.getElementById('cardHolderDisplay').textContent = val.toUpperCase() || 'FULL NAME';
+    }
+
+    function formatExpiry(input) {
+        let val = input.value.replace(/\D/g, '').substring(0, 4);
+        if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2);
+        input.value = val;
+        document.getElementById('cardExpiryDisplay').textContent = val || 'MM/YY';
+    }
+
+    function showError(msg) {
+        document.getElementById('errorText').textContent = msg;
+        document.getElementById('errorBox').classList.add('visible');
+    }
+
+    function hideError() {
+        document.getElementById('errorBox').classList.remove('visible');
+    }
+
+    function setLoading(loading) {
+        const btn = document.getElementById('payBtn');
+        const text = document.getElementById('payBtnText');
+        const spinner = document.getElementById('spinner');
+        btn.disabled = loading;
+        text.style.display = loading ? 'none' : 'inline';
+        spinner.style.display = loading ? 'block' : 'none';
+        document.getElementById('processingOverlay').classList.toggle('visible', loading);
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideError();
+
+        const name = document.getElementById('cardName').value.trim();
+        const number = document.getElementById('cardNumber').value.replace(/\s/g, '');
+        const expiry = document.getElementById('cardExpiry').value.trim();
+        const cvv = document.getElementById('cardCvv').value.trim();
+
+        if (!name) return showError('Please enter the cardholder name.');
+        if (number.length < 16) return showError('Please enter a valid 16-digit card number.');
+        if (expiry.length < 5) return showError('Please enter a valid expiry date (MM/YY).');
+        if (cvv.length < 3) return showError('Please enter a valid CVV.');
+
+        setLoading(true);
+
+        // Simulate network delay (realistic payment processing feel)
+        await new Promise(r => setTimeout(r, 2500));
+
+        try {
+            const res = await fetch('/admin/api/billing/process-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, card_number: number, expiry, cvv })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.href = data.redirect;
+            } else {
+                setLoading(false);
+                showError(data.message || 'Payment failed. Please try again.');
+            }
+        } catch (err) {
+            setLoading(false);
+            showError('Connection error. Please try again.');
+        }
+    });
+</script>
+</body>
+</html>

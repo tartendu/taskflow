@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+
+{% block title %}My Report - TaskFlow{% endblock %}
+{% block page_title %}My Report{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}">
+<style>
+.report-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.report-filter-bar label { color: var(--text-muted); font-size: 13px; }
+.report-filter-bar select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+.report-filter-bar select:focus { border-color: var(--primary); }
+.report-filter-bar select option { background: var(--surface-2); }
+.apply-btn {
+    padding: 7px 18px;
+    font-size: 13px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.15s;
+}
+.apply-btn:hover { opacity: 0.85; }
+
+.section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    margin-top: 8px;
+}
+
+/* Attendance cards */
+.attendance-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.att-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.15s;
+}
+.att-card:hover { border-color: var(--primary); }
+.att-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.att-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1; }
+.att-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* Rate + trend row */
+.rate-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+/* Trend bars */
+.trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 120px;
+    padding-top: 10px;
+}
+.trend-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    justify-content: flex-end;
+}
+.trend-bars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 2px;
+    justify-content: flex-end;
+    flex: 1;
+}
+.trend-bar-present {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    min-height: 2px;
+}
+.trend-bar-half {
+    width: 100%;
+    background: linear-gradient(135deg, var(--yellow), #d97706);
+    min-height: 2px;
+}
+.trend-month { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+/* Task activity */
+.task-activity-list { display: flex; flex-direction: column; gap: 10px; }
+.task-activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.15s;
+}
+.task-activity-item:hover { border-color: var(--primary); }
+.task-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.task-dot.done        { background: var(--green); }
+.task-dot.in_progress { background: var(--blue); }
+.task-dot.todo        { background: var(--text-muted); }
+.task-dot.on_hold     { background: #a78bfa; }
+.task-dot.overdue     { background: var(--red); }
+.task-activity-name { flex: 1; font-size: 13px; color: var(--text); font-weight: 500; }
+.status-pill {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.status-pill.done        { background: rgba(16,185,129,0.15);  color: var(--green); }
+.status-pill.in_progress { background: rgba(59,130,246,0.15);  color: var(--blue); }
+.status-pill.todo        { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+.status-pill.on_hold     { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.status-pill.overdue     { background: rgba(239,68,68,0.15);   color: var(--red); }
+
+.report-loading, .no-tasks {
+    text-align: center; padding: 30px;
+    color: var(--text-muted); font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .rate-row { grid-template-columns: 1fr; }
+    .attendance-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h2>My Work Report</h2>
+            <p class="header-subtitle">Your productivity, attendance, and task performance at a glance</p>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="report-filter-bar">
+        <label>Month:</label>
+        <select id="filterMonth">
+            <option value="1">January</option><option value="2">February</option>
+            <option value="3">March</option><option value="4">April</option>
+            <option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option>
+            <option value="9">September</option><option value="10">October</option>
+            <option value="11">November</option><option value="12">December</option>
+        </select>
+        <label>Year:</label>
+        <select id="filterYear"></select>
+        <button class="apply-btn" onclick="loadAll()">Apply</button>
+    </div>
+
+    <!-- TASK OVERVIEW -->
+    <div class="section-label">Task Overview</div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M9 11L12 14L22 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Total Assigned</div>
+                <div class="stat-value" id="totalTasks">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Completed</div>
+                <div class="stat-value" id="completedTasks">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><path d="M12 7V12L15 15" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">In Progress</div>
+                <div class="stat-value" id="inProgressTasks">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><path d="M12 8V12M12 16H12.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Overdue</div>
+                <div class="stat-value" id="overdueTasks">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-grid" style="margin-bottom:28px;">
+        <!-- Completion circle -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Task Completion Rate</h3>
+                <p class="chart-subtitle">All-time assigned tasks</p>
+            </div>
+            <div class="chart-body">
+                <div class="completion-circle" style="width:180px;height:180px;">
+                    <svg width="180" height="180">
+                        <circle cx="90" cy="90" r="75" stroke="var(--surface-2)" stroke-width="14" fill="none"/>
+                        <circle id="completionCircle" cx="90" cy="90" r="75"
+                            stroke="url(#rgrad)" stroke-width="14" fill="none"
+                            stroke-linecap="round" transform="rotate(-90 90 90)"
+                            stroke-dasharray="471.24" stroke-dashoffset="471.24"
+                            style="transition: stroke-dashoffset 0.9s ease;"/>
+                        <defs>
+                            <linearGradient id="rgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#6366f1"/>
+                                <stop offset="100%" style="stop-color:#8b5cf6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="completion-text">
+                        <div class="completion-percentage" id="completionRate">0%</div>
+                        <div class="completion-label">Complete</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status bars -->
+        <div class="chart-card">
+            <div class="chart-header"><h3>Task Status Breakdown</h3></div>
+            <div class="chart-body">
+                <div class="bar-chart">
+                    <div class="bar-item">
+                        <div class="bar-label">To Do</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill todo-bar" id="todoBar" style="width:0%"></div>
+                            <div class="bar-value" id="todoValue">0</div>
+                        </div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">In Progress</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill progress-bar" id="progressBar" style="width:0%"></div>
+                            <div class="bar-value" id="progressValue">0</div>
+                        </div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">On Hold</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill hold-bar" id="holdBar" style="width:0%"></div>
+                            <div class="bar-value" id="holdValue">0</div>
+                        </div>
+                    </div>
+                    <div class="bar-item">
+                        <div class="bar-label">Done</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill done-bar" id="doneBar" style="width:0%"></div>
+                            <div class="bar-value" id="doneValue">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priority -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Active Tasks by Priority</h3>
+                <p class="chart-subtitle">Excludes completed tasks</p>
+            </div>
+            <div class="chart-body">
+                <div class="priority-list">
+                    <div class="priority-item">
+                        <div class="priority-info">
+                            <span class="priority-badge high">High</span>
+                            <span class="priority-count" id="highPriority">0</span>
+                        </div>
+                        <div class="priority-bar-wrapper">
+                            <div class="priority-bar-fill high" id="highBar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="priority-item">
+                        <div class="priority-info">
+                            <span class="priority-badge medium">Medium</span>
+                            <span class="priority-count" id="mediumPriority">0</span>
+                        </div>
+                        <div class="priority-bar-wrapper">
+                            <div class="priority-bar-fill medium" id="mediumBar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="priority-item">
+                        <div class="priority-info">
+                            <span class="priority-badge low">Low</span>
+                            <span class="priority-count" id="lowPriority">0</span>
+                        </div>
+                        <div class="priority-bar-wrapper">
+                            <div class="priority-bar-fill low" id="lowBar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project involvement -->
+        <div class="chart-card">
+            <div class="chart-header"><h3>Project Involvement</h3></div>
+            <div class="chart-body">
+                <div class="project-stats">
+                    <div class="project-stat-item">
+                        <div class="project-stat-icon owned">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 21V5C19 3.89543 18.1046 3 17 3H7C5.89543 3 5 3.89543 5 5V21M19 21H21M19 21H14M5 21H3M5 21H10M10 21V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V21M10 21H14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="project-stat-content">
+                            <div class="project-stat-value" id="ownedProjects">—</div>
+                            <div class="project-stat-label">Projects Owned</div>
+                        </div>
+                    </div>
+                    <div class="project-stat-item">
+                        <div class="project-stat-icon member">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H17M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="project-stat-content">
+                            <div class="project-stat-value" id="memberProjects">—</div>
+                            <div class="project-stat-label">Projects as Member</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATTENDANCE -->
+    <div class="section-label">Attendance — <span id="attMonthLabel"></span></div>
+    <div class="attendance-stats-grid">
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#10b981,#059669);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attPresent">—</div><div class="att-label">Present Days</div></div>
+        </div>
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><path d="M12 7V12L15 15" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attHalfDay">—</div><div class="att-label">Half Days</div></div>
+        </div>
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attAbsent">—</div><div class="att-label">Absent Days</div></div>
+        </div>
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#3b82f6,#2563eb);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attSick">—</div><div class="att-label">Sick Leave</div></div>
+        </div>
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 2v3M16 2v3M3 8h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attCasual">—</div><div class="att-label">Casual Leave</div></div>
+        </div>
+        <div class="att-card">
+            <div class="att-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><path d="M12 7v5l3 3" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div><div class="att-value" id="attHours">—</div><div class="att-label">Total Hours Worked</div></div>
+        </div>
+    </div>
+
+    <!-- Attendance rate + 6-month trend -->
+    <div class="rate-row">
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>Attendance Rate</h3>
+                <p class="chart-subtitle">Present + half-days / working days</p>
+            </div>
+            <div class="chart-body">
+                <div class="completion-circle" style="width:160px;height:160px;">
+                    <svg width="160" height="160">
+                        <circle cx="80" cy="80" r="66" stroke="var(--surface-2)" stroke-width="13" fill="none"/>
+                        <circle id="attRateCircle" cx="80" cy="80" r="66"
+                            stroke="url(#agrad)" stroke-width="13" fill="none"
+                            stroke-linecap="round" transform="rotate(-90 80 80)"
+                            stroke-dasharray="414.69" stroke-dashoffset="414.69"
+                            style="transition: stroke-dashoffset 0.9s ease;"/>
+                        <defs>
+                            <linearGradient id="agrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#10b981"/>
+                                <stop offset="100%" style="stop-color:#059669"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="completion-text">
+                        <div class="completion-percentage" id="attRate">0%</div>
+                        <div class="completion-label">This Month</div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-top:14px;">
+                    <span style="font-size:13px;color:var(--text-muted);">
+                        Avg <strong id="avgHours" style="color:var(--text);">—</strong> hrs/day
+                        &nbsp;·&nbsp;
+                        <strong id="workingDays" style="color:var(--text);">—</strong> working days
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3>6-Month Attendance Trend</h3>
+                <p class="chart-subtitle">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--primary);margin-right:4px;vertical-align:middle;"></span>Present
+                    &nbsp;
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--yellow);margin-right:4px;vertical-align:middle;"></span>Half-day
+                </p>
+            </div>
+            <div class="chart-body">
+                <div class="trend-chart" id="trendChart">
+                    <div class="report-loading">Loading…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TASK SUMMARY -->
+    <div class="section-label">Task Summary</div>
+    <div class="chart-card" style="margin-bottom:28px;">
+        <div class="chart-header">
+            <h3>Tasks by Status</h3>
+            <p class="chart-subtitle">All tasks currently assigned to you</p>
+        </div>
+        <div class="chart-body">
+            <div id="recentTasksList" class="task-activity-list">
+                <div class="report-loading">Loading…</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const now = new Date();
+let currentMonth = now.getMonth() + 1;
+let currentYear  = now.getFullYear();
+
+// Populate year dropdown
+const yearSel = document.getElementById('filterYear');
+for (let y = currentYear; y >= currentYear - 3; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    yearSel.appendChild(o);
+}
+document.getElementById('filterMonth').value = currentMonth;
+document.getElementById('filterYear').value  = currentYear;
+
+function loadAll() {
+    currentMonth = parseInt(document.getElementById('filterMonth').value);
+    currentYear  = parseInt(document.getElementById('filterYear').value);
+    loadTaskStats();
+    loadAttendanceStats();
+}
+
+async function loadTaskStats() {
+    try {
+        const res   = await fetch('/api/reports/user-stats');
+        const stats = await res.json();
+
+        document.getElementById('totalTasks').textContent      = stats.total_assigned;
+        document.getElementById('completedTasks').textContent  = stats.completed;
+        document.getElementById('inProgressTasks').textContent = stats.in_progress;
+        document.getElementById('overdueTasks').textContent    = stats.overdue;
+
+        // Completion circle (r=75, circumference≈471.24)
+        const circ = 471.24;
+        document.getElementById('completionRate').textContent = stats.completion_rate + '%';
+        setTimeout(() => {
+            document.getElementById('completionCircle').style.strokeDashoffset =
+                circ - (stats.completion_rate / 100) * circ;
+        }, 120);
+
+        // Status bars
+        const maxT = Math.max(stats.todo, stats.in_progress, stats.on_hold, stats.completed) || 1;
+        setBar('todoBar',     'todoValue',     stats.todo,        maxT);
+        setBar('progressBar', 'progressValue', stats.in_progress, maxT);
+        setBar('holdBar',     'holdValue',     stats.on_hold,     maxT);
+        setBar('doneBar',     'doneValue',     stats.completed,   maxT);
+
+        // Priority bars
+        const totalP = (stats.high_priority + stats.medium_priority + stats.low_priority) || 1;
+        document.getElementById('highPriority').textContent   = stats.high_priority;
+        document.getElementById('mediumPriority').textContent = stats.medium_priority;
+        document.getElementById('lowPriority').textContent    = stats.low_priority;
+        setTimeout(() => {
+            document.getElementById('highBar').style.width   = (stats.high_priority   / totalP * 100) + '%';
+            document.getElementById('mediumBar').style.width = (stats.medium_priority / totalP * 100) + '%';
+            document.getElementById('lowBar').style.width    = (stats.low_priority    / totalP * 100) + '%';
+        }, 120);
+
+        // Projects
+        document.getElementById('ownedProjects').textContent  = stats.owned_projects;
+        document.getElementById('memberProjects').textContent = stats.member_projects;
+
+        // Task summary tiles
+        const container = document.getElementById('recentTasksList');
+        const items = [
+            { label: 'To Do',       count: stats.todo,        cls: 'todo'        },
+            { label: 'In Progress', count: stats.in_progress, cls: 'in_progress' },
+            { label: 'On Hold',     count: stats.on_hold,     cls: 'on_hold'     },
+            { label: 'Completed',   count: stats.completed,   cls: 'done'        },
+            { label: 'Overdue',     count: stats.overdue,     cls: 'overdue'     },
+        ].filter(i => i.count > 0);
+
+        if (!items.length) {
+            container.innerHTML = '<div class="no-tasks">No tasks assigned yet.</div>';
+        } else {
+            container.innerHTML = items.map(i => `
+                <div class="task-activity-item">
+                    <span class="task-dot ${i.cls}"></span>
+                    <span class="task-activity-name">${i.label} tasks</span>
+                    <span class="status-pill ${i.cls}">${i.count} task${i.count !== 1 ? 's' : ''}</span>
+                </div>`).join('');
+        }
+    } catch(e) {
+        console.error('Task stats error:', e);
+    }
+}
+
+function setBar(barId, valId, value, max) {
+    document.getElementById(valId).textContent = value;
+    setTimeout(() => {
+        document.getElementById(barId).style.width = (value / max * 100) + '%';
+    }, 120);
+}
+
+async function loadAttendanceStats() {
+    try {
+        const res  = await fetch(`/api/reports/attendance-stats?year=${currentYear}&month=${currentMonth}`);
+        const data = await res.json();
+
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        document.getElementById('attMonthLabel').textContent = months[data.month - 1] + ' ' + data.year;
+
+        document.getElementById('attPresent').textContent  = data.present;
+        document.getElementById('attHalfDay').textContent  = data.half_day;
+        document.getElementById('attAbsent').textContent   = data.absent;
+        document.getElementById('attSick').textContent     = data.sick_leave;
+        document.getElementById('attCasual').textContent   = data.casual_leave;
+        document.getElementById('attHours').textContent    = data.total_hours + 'h';
+        document.getElementById('avgHours').textContent    = data.avg_hours_per_day;
+        document.getElementById('workingDays').textContent = data.working_days;
+        document.getElementById('attRate').textContent     = data.attendance_rate + '%';
+
+        // Attendance circle (r=66, circumference≈414.69)
+        const aCirc = 414.69;
+        setTimeout(() => {
+            document.getElementById('attRateCircle').style.strokeDashoffset =
+                aCirc - (data.attendance_rate / 100) * aCirc;
+        }, 120);
+
+        // 6-month trend bars
+        const container = document.getElementById('trendChart');
+        if (!data.trend || !data.trend.length) {
+            container.innerHTML = '<div class="no-tasks">No trend data available.</div>';
+            return;
+        }
+        const maxVal  = Math.max(...data.trend.map(t => t.present + t.half_day)) || 1;
+        const maxBarH = 90;
+        container.innerHTML = data.trend.map(t => {
+            const pH = Math.max(t.present  > 0 ? 3 : 0, Math.round((t.present  / maxVal) * maxBarH));
+            const hH = Math.max(t.half_day > 0 ? 3 : 0, Math.round((t.half_day / maxVal) * maxBarH));
+            return `<div class="trend-col">
+                <div class="trend-bars">
+                    <div class="trend-bar-half"    style="height:${hH}px"></div>
+                    <div class="trend-bar-present" style="height:${pH}px"></div>
+                </div>
+                <div class="trend-month">${t.month}</div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        console.error('Attendance stats error:', e);
+    }
+}
+
+loadAll();
+</script>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends "client_base.html" %}
+
+{% block title %}Dashboard - Client Portal{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/client_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<div class="client-welcome-section">
+    <div class="client-welcome-text">
+        <h2>Welcome back, <span id="clientName">{{ current_user.name or 'Client' }}</span>!</h2>
+        <p>Here's an overview of your projects and their progress.</p>
+    </div>
+    <div class="client-welcome-date">
+        <span id="currentDate"></span>
+    </div>
+</div>
+
+<!-- Overview Stats Skeleton -->
+<div class="client-overview-stats" id="overviewSkeleton">
+    <div class="skeleton-overview-card">
+        <div class="skeleton skeleton-icon"></div>
+        <div class="skeleton-overview-content">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+        </div>
+    </div>
+    <div class="skeleton-overview-card">
+        <div class="skeleton skeleton-icon"></div>
+        <div class="skeleton-overview-content">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+        </div>
+    </div>
+    <div class="skeleton-overview-card">
+        <div class="skeleton skeleton-icon"></div>
+        <div class="skeleton-overview-content">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+        </div>
+    </div>
+    <div class="skeleton-overview-card">
+        <div class="skeleton skeleton-icon"></div>
+        <div class="skeleton-overview-content">
+            <div class="skeleton skeleton-text-lg"></div>
+            <div class="skeleton skeleton-text-sm"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Overview Stats (hidden initially) -->
+<div class="client-overview-stats" id="overviewStats" style="display: none;">
+    <div class="client-overview-card">
+        <div class="client-overview-icon" style="background: #3498db20; color: #3498db;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="client-overview-content">
+            <div class="client-overview-value" id="totalProjectsCount">0</div>
+            <div class="client-overview-label">Total Projects</div>
+        </div>
+    </div>
+    <div class="client-overview-card">
+        <div class="client-overview-icon" style="background: #f39c1220; color: #f39c12;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="client-overview-content">
+            <div class="client-overview-value" id="totalTasksCount">0</div>
+            <div class="client-overview-label">Total Tasks</div>
+        </div>
+    </div>
+    <div class="client-overview-card">
+        <div class="client-overview-icon" style="background: #2ecc7120; color: #2ecc71;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="client-overview-content">
+            <div class="client-overview-value" id="completedTasksCount">0</div>
+            <div class="client-overview-label">Completed</div>
+        </div>
+    </div>
+    <div class="client-overview-card">
+        <div class="client-overview-icon" style="background: #9b59b620; color: #9b59b6;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 8V16M12 11V16M8 14V16M6 20H18C19.1046 20 20 19.1046 20 18V6C20 4.89543 19.1046 4 18 4H6C4.89543 4 4 4.89543 4 6V18C4 19.1046 4.89543 20 6 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="client-overview-content">
+            <div class="client-overview-value" id="completionRate">0%</div>
+            <div class="client-overview-label">Completion Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Section Skeleton -->
+<div class="client-analytics-section" id="analyticsSkeleton">
+    <div class="client-section-header">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton" style="width: 180px; height: 36px; border-radius: 8px;"></div>
+    </div>
+    <div class="client-analytics-grid">
+        <div class="skeleton-analytics-card">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton-bar-item">
+                <div class="skeleton skeleton-bar-label"></div>
+                <div class="skeleton skeleton-bar-track"></div>
+                <div class="skeleton skeleton-bar-value"></div>
+            </div>
+            <div class="skeleton-bar-item">
+                <div class="skeleton skeleton-bar-label"></div>
+                <div class="skeleton skeleton-bar-track"></div>
+                <div class="skeleton skeleton-bar-value"></div>
+            </div>
+            <div class="skeleton-bar-item">
+                <div class="skeleton skeleton-bar-label"></div>
+                <div class="skeleton skeleton-bar-track"></div>
+                <div class="skeleton skeleton-bar-value"></div>
+            </div>
+            <div class="skeleton-bar-item">
+                <div class="skeleton skeleton-bar-label"></div>
+                <div class="skeleton skeleton-bar-track"></div>
+                <div class="skeleton skeleton-bar-value"></div>
+            </div>
+        </div>
+        <div class="skeleton-analytics-card">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-circle"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Section (hidden initially) -->
+<div class="client-analytics-section" id="analyticsSection" style="display: none;">
+    <div class="client-section-header">
+        <h3>Project Analytics</h3>
+        <select id="projectFilter" class="client-filter-select">
+            <option value="all">All Projects</option>
+        </select>
+    </div>
+    <div class="client-analytics-grid">
+        <div class="client-analytics-card">
+            <h4>Task Status Distribution</h4>
+            <div class="client-chart-container">
+                <div class="client-status-bars" id="statusBars">
+                    <div class="client-status-bar-item">
+                        <div class="client-status-bar-label">
+                            <span class="status-dot todo"></span>
+                            <span>To Do</span>
+                        </div>
+                        <div class="client-status-bar-track">
+                            <div class="client-status-bar-fill todo" id="todoBar" style="width: 0%"></div>
+                        </div>
+                        <span class="client-status-bar-value" id="todoCount">0</span>
+                    </div>
+                    <div class="client-status-bar-item">
+                        <div class="client-status-bar-label">
+                            <span class="status-dot in-progress"></span>
+                            <span>In Progress</span>
+                        </div>
+                        <div class="client-status-bar-track">
+                            <div class="client-status-bar-fill in-progress" id="inProgressBar" style="width: 0%"></div>
+                        </div>
+                        <span class="client-status-bar-value" id="inProgressCount">0</span>
+                    </div>
+                    <div class="client-status-bar-item">
+                        <div class="client-status-bar-label">
+                            <span class="status-dot on-hold"></span>
+                            <span>On Hold</span>
+                        </div>
+                        <div class="client-status-bar-track">
+                            <div class="client-status-bar-fill on-hold" id="onHoldBar" style="width: 0%"></div>
+                        </div>
+                        <span class="client-status-bar-value" id="onHoldCount">0</span>
+                    </div>
+                    <div class="client-status-bar-item">
+                        <div class="client-status-bar-label">
+                            <span class="status-dot done"></span>
+                            <span>Done</span>
+                        </div>
+                        <div class="client-status-bar-track">
+                            <div class="client-status-bar-fill done" id="doneBar" style="width: 0%"></div>
+                        </div>
+                        <span class="client-status-bar-value" id="doneCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="client-analytics-card">
+            <h4>Overall Progress</h4>
+            <div class="client-progress-circle-container">
+                <div class="client-progress-circle" id="progressCircle">
+                    <svg viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="54" class="progress-bg"></circle>
+                        <circle cx="60" cy="60" r="54" class="progress-fill" id="progressFill"></circle>
+                    </svg>
+                    <div class="client-progress-circle-text">
+                        <span class="client-progress-circle-value" id="progressValue">0%</span>
+                        <span class="client-progress-circle-label">Complete</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projects Section Skeleton -->
+<div class="client-projects-section" id="projectsSkeleton">
+    <div class="client-section-header">
+        <h3>Your Projects</h3>
+    </div>
+    <div class="client-projects-grid">
+        <div class="skeleton-project-card">
+            <div class="skeleton skeleton-project-title"></div>
+            <div class="skeleton skeleton-project-desc"></div>
+            <div class="skeleton skeleton-project-desc-short"></div>
+            <div class="skeleton skeleton-progress-bar"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+            </div>
+        </div>
+        <div class="skeleton-project-card">
+            <div class="skeleton skeleton-project-title"></div>
+            <div class="skeleton skeleton-project-desc"></div>
+            <div class="skeleton skeleton-project-desc-short"></div>
+            <div class="skeleton skeleton-progress-bar"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+            </div>
+        </div>
+        <div class="skeleton-project-card">
+            <div class="skeleton skeleton-project-title"></div>
+            <div class="skeleton skeleton-project-desc"></div>
+            <div class="skeleton skeleton-project-desc-short"></div>
+            <div class="skeleton skeleton-progress-bar"></div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton skeleton-stat-value"></div>
+                    <div class="skeleton skeleton-stat-label"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projects Section (hidden initially) -->
+<div class="client-projects-section" id="projects" style="display: none;">
+    <div class="client-section-header">
+        <h3>Your Projects</h3>
+    </div>
+    <div id="projectsContainer" class="client-projects-grid">
+    </div>
+</div>
+
+<div class="empty-state" id="emptyState" style="display: none;">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13M12 13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h3>No Projects Yet</h3>
+    <p>You don't have access to any projects yet.<br>Please contact your project manager.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/client_dashboard.js') }}"></script>
+{% endblock %}

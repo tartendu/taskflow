@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}My Tasks - TaskFlow{% endblock %}
+
+{% block page_title %}My Tasks{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="project-info">
+                <h2>My Tasks</h2>
+                <p class="project-description">All tasks assigned to you across all projects</p>
+            </div>
+            <div class="dashboard-actions">
+                <div class="filter-group">
+                    <button class="btn btn-secondary" id="filterBtn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 5H18M5 10H15M8 15H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="kanban-board">
+            <div class="kanban-column" data-status="todo">
+                <div class="column-header">
+                    <h3>To Do</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="todo-list">
+                    <!-- Skeleton Loading -->
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="in_progress">
+                <div class="column-header">
+                    <h3>In Progress</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="in_progress-list">
+                    <!-- Skeleton Loading -->
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="on_hold">
+                <div class="column-header">
+                    <h3>On Hold</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="on_hold-list">
+                    <!-- Skeleton Loading -->
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kanban-column" data-status="done">
+                <div class="column-header">
+                    <h3>Done</h3>
+                    <span class="task-count">0</span>
+                </div>
+                <div class="task-list" id="done-list">
+                    <!-- Skeleton Loading -->
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                    <div class="skeleton-task-card">
+                        <div class="skeleton skeleton-task-title"></div>
+                        <div class="skeleton skeleton-task-desc"></div>
+                        <div class="skeleton skeleton-task-tags"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Load My Tasks
+        async function loadMyTasks() {
+            try {
+                const response = await fetch('/api/my-tasks');
+                const tasks = await response.json();
+
+                // Clear all lists
+                ['todo', 'in_progress', 'on_hold', 'done'].forEach(status => {
+                    const taskList = document.getElementById(`${status}-list`);
+                    taskList.innerHTML = '';
+                });
+
+                // Populate tasks
+                Object.keys(tasks).forEach(status => {
+                    const taskList = document.getElementById(`${status}-list`);
+                    const taskCount = document.querySelector(`.kanban-column[data-status="${status}"] .task-count`);
+
+                    taskCount.textContent = tasks[status].length;
+
+                    tasks[status].forEach(task => {
+                        const taskCard = createTaskCard(task);
+                        taskList.appendChild(taskCard);
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        function createTaskCard(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            card.dataset.taskId = task.id;
+
+            // Priority badge
+            const priorityClass = `priority-${task.priority}`;
+            const priorityLabels = {
+                'low': 'Low',
+                'medium': 'Medium',
+                'high': 'High'
+            };
+
+            // Due date
+            let dueDateHTML = '';
+            if (task.due_date) {
+                const dueDate = new Date(task.due_date);
+                const formatted = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const dueDateClass = task.is_overdue ? 'due-date-overdue' : 'due-date-upcoming';
+                dueDateHTML = `<span class="task-tag ${dueDateClass}">📅 ${formatted}</span>`;
+            }
+
+            // Labels
+            let labelsHTML = '';
+            if (task.labels && task.labels.length > 0) {
+                labelsHTML = task.labels.map(label =>
+                    `<span class="task-label" style="background-color: ${label.color}20; color: ${label.color};">${label.name}</span>`
+                ).join('');
+            }
+
+            // Project name badge
+            const projectBadge = `<span class="task-tag project-tag">📁 ${task.project_name}</span>`;
+
+            card.innerHTML = `
+                <div class="task-header">
+                    <h4 class="task-title">${task.title}</h4>
+                    <span class="task-priority ${priorityClass}">${priorityLabels[task.priority]}</span>
+                </div>
+                ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
+                <div class="task-footer">
+                    <div class="task-tags">
+                        ${projectBadge}
+                        ${dueDateHTML}
+                        ${labelsHTML}
+                    </div>
+                </div>
+            `;
+
+            // Click to view details (redirect to project dashboard with task detail)
+            card.addEventListener('click', () => {
+                window.location.href = `/project/${task.project_id}/dashboard#task-${task.id}`;
+            });
+
+            return card;
+        }
+
+        // Load tasks on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMyTasks();
+        });
+    </script>
+{% endblock %}

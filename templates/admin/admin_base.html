@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Portal{% endblock %} — TaskFlow</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0e1a; --surface: #111827; --surface-2: #1a2235; --surface-3: #1e293b;
+            --border: rgba(255,255,255,0.07); --text: #f1f5f9;
+            --text-muted: #64748b; --text-soft: #94a3b8;
+            --primary: #6366f1; --primary-glow: rgba(99,102,241,0.2);
+            --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+            --sidebar-w: 240px;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        /* ---- Sidebar ---- */
+        .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow: hidden; }
+        .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .logo-box { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .logo-box svg { width: 20px; height: 20px; fill: white; }
+        .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+        .logo-sub { font-size: 10px; color: var(--primary); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+        .sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-nav::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .nav-section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); padding: 12px 8px 6px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: var(--text-soft); font-size: 13px; font-weight: 500; text-decoration: none; transition: background 0.15s, color 0.15s; margin-bottom: 1px; white-space: nowrap; }
+        .nav-item:hover { background: var(--surface-2); color: var(--text); }
+        .nav-item.active { background: var(--primary-glow); color: var(--primary); }
+        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+        .sidebar-footer { padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+        .admin-info { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); margin-bottom: 8px; }
+        .admin-avatar { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--primary), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+        .admin-name { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-role { font-size: 10px; color: var(--primary); }
+        .btn-logout { width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }
+        .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+        /* ---- Main ---- */
+        .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .topbar { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); flex-shrink: 0; z-index: 50; gap: 16px; }
+        .topbar-left h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+        .topbar-left p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .content { padding: 28px 32px; flex: 1; overflow-y: auto; overflow-x: hidden; }
+        .content::-webkit-scrollbar { width: 6px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ---- Shared components ---- */
+        .btn-primary { padding: 9px 18px; background: linear-gradient(135deg, var(--primary), #8b5cf6); border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.15s; white-space: nowrap; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { padding: 9px 16px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-soft); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; white-space: nowrap; }
+        .btn-secondary:hover { border-color: var(--text-soft); color: var(--text); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .panel-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .panel-title { font-size: 14px; font-weight: 700; color: var(--text); }
+        .panel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .panel-body { padding: 20px 22px; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge.active, .badge.present { background: rgba(16,185,129,0.1); color: var(--green); }
+        .badge.grace, .badge.half-day, .badge.pending { background: rgba(245,158,11,0.1); color: var(--yellow); }
+        .badge.locked, .badge.absent, .badge.rejected { background: rgba(239,68,68,0.1); color: var(--red); }
+        .badge.holiday { background: rgba(99,102,241,0.1); color: var(--primary); }
+        .badge.approved { background: rgba(16,185,129,0.1); color: var(--green); }
+        .tbl { width: 100%; border-collapse: collapse; }
+        .tbl th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .tbl td { padding: 13px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .tbl tr:hover td { background: var(--surface-2); }
+        .empty-state { text-align: center; padding: 48px; color: var(--text-muted); font-size: 13px; }
+        .search-input { padding: 9px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; width: 220px; }
+        .search-input:focus { border-color: var(--primary); }
+        .select-input { padding: 9px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+        .select-input:focus { border-color: var(--primary); }
+        .select-input option { background: var(--surface-2); }
+        .stat-grid { display: grid; gap: 16px; margin-bottom: 24px; }
+        .stat-grid-4 { grid-template-columns: repeat(4,1fr); }
+        .stat-grid-3 { grid-template-columns: repeat(3,1fr); }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+        .stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+        .stat-icon svg { width: 18px; height: 18px; }
+        .stat-icon.indigo { background: rgba(99,102,241,0.15); color: var(--primary); }
+        .stat-icon.green { background: rgba(16,185,129,0.15); color: var(--green); }
+        .stat-icon.yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+        .stat-icon.red { background: rgba(239,68,68,0.15); color: var(--red); }
+        .stat-icon.blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+        .stat-val { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+        .stat-lbl { font-size: 12px; color: var(--text-muted); }
+        .spinner-inline { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-box"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+        <div><div class="logo-text">TaskFlow</div><div class="logo-sub">Admin Portal</div></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a class="nav-item {% if active_page == 'dashboard' %}active{% endif %}" href="/admin/dashboard">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard
+        </a>
+
+        <div class="nav-section-label">Management</div>
+        <a class="nav-item {% if active_page == 'users' %}active{% endif %}" href="/admin/users">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Users
+        </a>
+        <a class="nav-item {% if active_page == 'billing' %}active{% endif %}" href="/admin/billing">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Billing & Credits
+        </a>
+
+        <div class="nav-section-label">HR & Operations</div>
+        <a class="nav-item {% if active_page == 'attendance' %}active{% endif %}" href="/admin/attendance">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>Attendance
+        </a>
+        <a class="nav-item {% if active_page == 'leave' %}active{% endif %}" href="/admin/leave">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z"/></svg>Leave Requests
+            <span class="nav-badge" id="sidebarLeaveBadge" style="display:none;"></span>
+        </a>
+        <a class="nav-item {% if active_page == 'leave-summary' %}active{% endif %}" href="/admin/leave-summary">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>Leave Summary
+        </a>
+        <a class="nav-item {% if active_page == 'report' %}active{% endif %}" href="/admin/monthly-report">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>Monthly Report
+        </a>
+
+        <a class="nav-item {% if active_page == 'petty-cash' %}active{% endif %}" href="/admin/petty-cash">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Petty Cash
+        </a>
+
+        <a class="nav-item {% if active_page == 'purchases' %}active{% endif %}" href="/admin/purchases">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>Company Purchases
+        </a>
+
+        <a class="nav-item {% if active_page == 'invoices' %}active{% endif %}" href="/admin/invoices">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>Company Invoices
+        </a>
+
+        <a class="nav-item {% if active_page == 'clients' %}active{% endif %}" href="/admin/clients">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>Clients
+        </a>
+
+        <div class="nav-section-label">Projects</div>
+        <a class="nav-item {% if active_page == 'projects' %}active{% endif %}" href="/admin/projects">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.86.18-1.3C18 2.57 15.43 1 13 1c-1.36 0-2.55.57-3.43 1.47L8 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/></svg>Projects
+        </a>
+
+        <a class="nav-item {% if active_page == 'roles' %}active{% endif %}" href="/admin/roles">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>Roles & Access
+        </a>
+
+        <div class="nav-section-label">Settings</div>
+        <a class="nav-item {% if active_page == 'holidays' %}active{% endif %}" href="/admin/holidays">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>Holidays
+        </a>
+        <a class="nav-item {% if active_page == 'settings' %}active{% endif %}" href="/admin/settings">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Settings
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="admin-info">
+            <div class="admin-avatar">{{ (admin.get('full_name') or admin.get('username', 'A'))[0].upper() }}</div>
+            <div style="overflow:hidden;">
+                <div class="admin-name">{{ admin.get('full_name') or admin.get('username', 'Admin') }}</div>
+                <div class="admin-role">Super Admin</div>
+            </div>
+        </div>
+        <a href="/admin/logout" class="btn-logout">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+            Sign Out
+        </a>
+    </div>
+</aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <h1>{% block page_title %}{% endblock %}</h1>
+            <p>{% block page_subtitle %}{% endblock %}</p>
+        </div>
+        <div class="topbar-right">
+            {% block topbar_actions %}{% endblock %}
+        </div>
+    </div>
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</main>
+
+<script>
+// Load pending leave count for sidebar badge
+async function loadSidebarBadge() {
+    try {
+        const res = await fetch('/api/admin/leave-requests?status=pending');
+        if (res.ok) {
+            const data = await res.json();
+            const count = data.leave_requests ? data.leave_requests.length : 0;
+            const badge = document.getElementById('sidebarLeaveBadge');
+            if (badge && count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline';
+            }
+        }
+    } catch(e) {}
+}
+loadSidebarBadge();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

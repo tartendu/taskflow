@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TaskFlow{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="home-dashboard-container">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-content">
+                <h2>Welcome back, <span id="userName">{{ current_user.username }}</span>!</h2>
+                <p class="welcome-subtitle">Here's what's happening with your projects today</p>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ url_for('project.projects') }}" class="quick-action-btn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    New Project
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats Cards Skeleton -->
+        <div class="stats-overview" id="statsSkeleton">
+            <div class="stat-card-skeleton">
+                <div class="skeleton skeleton-stat-icon"></div>
+                <div class="skeleton-stat-info">
+                    <div class="skeleton skeleton-stat-label"></div>
+                    <div class="skeleton skeleton-stat-value"></div>
+                </div>
+            </div>
+            <div class="stat-card-skeleton">
+                <div class="skeleton skeleton-stat-icon"></div>
+                <div class="skeleton-stat-info">
+                    <div class="skeleton skeleton-stat-label"></div>
+                    <div class="skeleton skeleton-stat-value"></div>
+                </div>
+            </div>
+            <div class="stat-card-skeleton">
+                <div class="skeleton skeleton-stat-icon"></div>
+                <div class="skeleton-stat-info">
+                    <div class="skeleton skeleton-stat-label"></div>
+                    <div class="skeleton skeleton-stat-value"></div>
+                </div>
+            </div>
+            <div class="stat-card-skeleton">
+                <div class="skeleton skeleton-stat-icon"></div>
+                <div class="skeleton-stat-info">
+                    <div class="skeleton skeleton-stat-label"></div>
+                    <div class="skeleton skeleton-stat-value"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards (hidden initially) -->
+        <div class="stats-overview" id="statsOverview" style="display: none;">
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13M12 13V22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Projects</div>
+                    <div class="stat-value" id="totalProjects">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 13L9 17L19 7" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Completed</div>
+                    <div class="stat-value" id="completedTasks">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card info">
+                <div class="stat-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/>
+                        <path d="M12 7V12L15 15" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">In Progress</div>
+                    <div class="stat-value" id="inProgressTasks">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card danger">
+                <div class="stat-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/>
+                        <path d="M12 8V12M12 16H12.01" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Overdue</div>
+                    <div class="stat-value" id="overdueTasks">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Section -->
+        <div class="dashboard-tabs">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="overview">Overview</button>
+                <button class="tab-btn" data-tab="all-tasks">All Tasks</button>
+                <button class="tab-btn" data-tab="all-projects">All Projects</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview-tab">
+                <!-- Skeleton Grid -->
+                <div class="dashboard-grid" id="overviewSkeleton">
+                    <!-- Recent Tasks Skeleton -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Your Tasks</h3>
+                            <a href="{{ url_for('project.my_tasks') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="tasks-list">
+                                <div class="skeleton-task-item">
+                                    <div class="skeleton-task-header">
+                                        <div class="skeleton skeleton-task-title"></div>
+                                        <div class="skeleton skeleton-task-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-task-meta"></div>
+                                </div>
+                                <div class="skeleton-task-item">
+                                    <div class="skeleton-task-header">
+                                        <div class="skeleton skeleton-task-title"></div>
+                                        <div class="skeleton skeleton-task-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-task-meta"></div>
+                                </div>
+                                <div class="skeleton-task-item">
+                                    <div class="skeleton-task-header">
+                                        <div class="skeleton skeleton-task-title"></div>
+                                        <div class="skeleton skeleton-task-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-task-meta"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Events Skeleton -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Upcoming Events</h3>
+                            <a href="{{ url_for('calendar.time_management') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="events-list">
+                                <div class="skeleton-event-item">
+                                    <div class="skeleton-event-header">
+                                        <div class="skeleton skeleton-event-title"></div>
+                                        <div class="skeleton skeleton-event-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-event-time"></div>
+                                </div>
+                                <div class="skeleton-event-item">
+                                    <div class="skeleton-event-header">
+                                        <div class="skeleton skeleton-event-title"></div>
+                                        <div class="skeleton skeleton-event-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-event-time"></div>
+                                </div>
+                                <div class="skeleton-event-item">
+                                    <div class="skeleton-event-header">
+                                        <div class="skeleton skeleton-event-title"></div>
+                                        <div class="skeleton skeleton-event-badge"></div>
+                                    </div>
+                                    <div class="skeleton skeleton-event-time"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Projects Skeleton -->
+                    <div class="dashboard-card wide">
+                        <div class="card-header">
+                            <h3>Recent Projects</h3>
+                            <a href="{{ url_for('project.projects') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="projects-grid">
+                                <div class="skeleton-project-card">
+                                    <div class="skeleton skeleton-project-title"></div>
+                                    <div class="skeleton skeleton-project-desc"></div>
+                                    <div class="skeleton-project-stats">
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-project-card">
+                                    <div class="skeleton skeleton-project-title"></div>
+                                    <div class="skeleton skeleton-project-desc"></div>
+                                    <div class="skeleton-project-stats">
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-project-card">
+                                    <div class="skeleton skeleton-project-title"></div>
+                                    <div class="skeleton skeleton-project-desc"></div>
+                                    <div class="skeleton-project-stats">
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-project-card">
+                                    <div class="skeleton skeleton-project-title"></div>
+                                    <div class="skeleton skeleton-project-desc"></div>
+                                    <div class="skeleton-project-stats">
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                        <div class="skeleton skeleton-project-stat"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actual Content Grid (hidden initially) -->
+                <div class="dashboard-grid" id="overviewContent" style="display: none;">
+                    <!-- Recent Tasks -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Your Tasks</h3>
+                            <a href="{{ url_for('project.my_tasks') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentTasksList" class="tasks-list">
+                                <!-- Tasks will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Events -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Upcoming Events</h3>
+                            <a href="{{ url_for('calendar.time_management') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="upcomingEventsList" class="events-list">
+                                <!-- Events will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Projects -->
+                    <div class="dashboard-card wide">
+                        <div class="card-header">
+                            <h3>Recent Projects</h3>
+                            <a href="{{ url_for('project.projects') }}" class="view-all-link">View all →</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentProjectsList" class="projects-grid">
+                                <!-- Projects will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Tasks Tab -->
+            <div class="tab-content" id="all-tasks-tab">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>All Tasks from Your Projects</h3>
+                        <div class="filter-group">
+                            <select id="taskStatusFilter" class="filter-select">
+                                <option value="all">All Status</option>
+                                <option value="todo">To Do</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="on_hold">On Hold</option>
+                                <option value="done">Done</option>
+                            </select>
+                            <select id="taskPriorityFilter" class="filter-select">
+                                <option value="all">All Priority</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- All Tasks Skeleton -->
+                        <div id="allTasksSkeleton" class="all-tasks-list">
+                            <div class="skeleton-detailed-task-card">
+                                <div class="skeleton-task-card-header">
+                                    <div class="skeleton skeleton-task-card-title"></div>
+                                    <div class="skeleton-task-badges">
+                                        <div class="skeleton skeleton-badge"></div>
+                                        <div class="skeleton skeleton-badge"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton skeleton-task-description"></div>
+                                <div class="skeleton-task-details">
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-detailed-task-card">
+                                <div class="skeleton-task-card-header">
+                                    <div class="skeleton skeleton-task-card-title"></div>
+                                    <div class="skeleton-task-badges">
+                                        <div class="skeleton skeleton-badge"></div>
+                                        <div class="skeleton skeleton-badge"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton skeleton-task-description"></div>
+                                <div class="skeleton-task-details">
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-detailed-task-card">
+                                <div class="skeleton-task-card-header">
+                                    <div class="skeleton skeleton-task-card-title"></div>
+                                    <div class="skeleton-task-badges">
+                                        <div class="skeleton skeleton-badge"></div>
+                                        <div class="skeleton skeleton-badge"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton skeleton-task-description"></div>
+                                <div class="skeleton-task-details">
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                    <div class="skeleton skeleton-task-detail"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Actual Tasks List -->
+                        <div id="allTasksList" class="all-tasks-list" style="display: none;">
+                            <!-- All tasks will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Projects Tab -->
+            <div class="tab-content" id="all-projects-tab">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>All Your Projects</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- All Projects Skeleton -->
+                        <div id="allProjectsSkeleton" class="all-projects-grid">
+                            <div class="skeleton-detailed-project-card">
+                                <div class="skeleton-project-card-header">
+                                    <div class="skeleton skeleton-project-card-title"></div>
+                                    <div class="skeleton skeleton-owner-badge"></div>
+                                </div>
+                                <div class="skeleton skeleton-project-description"></div>
+                                <div class="skeleton-project-stats-grid">
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-progress-container">
+                                    <div class="skeleton skeleton-progress-label"></div>
+                                    <div class="skeleton skeleton-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-detailed-project-card">
+                                <div class="skeleton-project-card-header">
+                                    <div class="skeleton skeleton-project-card-title"></div>
+                                    <div class="skeleton skeleton-owner-badge"></div>
+                                </div>
+                                <div class="skeleton skeleton-project-description"></div>
+                                <div class="skeleton-project-stats-grid">
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-progress-container">
+                                    <div class="skeleton skeleton-progress-label"></div>
+                                    <div class="skeleton skeleton-progress-bar"></div>
+                                </div>
+                            </div>
+                            <div class="skeleton-detailed-project-card">
+                                <div class="skeleton-project-card-header">
+                                    <div class="skeleton skeleton-project-card-title"></div>
+                                    <div class="skeleton skeleton-owner-badge"></div>
+                                </div>
+                                <div class="skeleton skeleton-project-description"></div>
+                                <div class="skeleton-project-stats-grid">
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                    <div class="skeleton-stat-item">
+                                        <div class="skeleton skeleton-stat-item-label"></div>
+                                        <div class="skeleton skeleton-stat-item-value"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-progress-container">
+                                    <div class="skeleton skeleton-progress-label"></div>
+                                    <div class="skeleton skeleton-progress-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Actual Projects List -->
+                        <div id="allProjectsList" class="all-projects-grid" style="display: none;">
+                            <!-- All projects will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ url_for('static', filename='js/home_dashboard.js') }}"></script>
+{% endblock %}

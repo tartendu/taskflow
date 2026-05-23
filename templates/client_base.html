@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Client Portal - TaskFlow{% endblock %}</title>
+
+    <!-- Client Layout CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/client_style.css') }}">
+
+    <!-- Page-specific CSS -->
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="client-dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="client-sidebar" id="clientSidebar">
+            <div class="client-sidebar-header">
+                <div class="client-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="TaskFlow Logo" width="40" height="40">
+                    <span class="client-logo-text">TaskFlow</span>
+                    <span class="client-portal-badge">Client</span>
+                </div>
+                <button class="client-sidebar-toggle" id="clientSidebarToggle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <nav class="client-sidebar-nav">
+                <a href="{{ url_for('client.client_dashboard') }}" class="client-nav-item {% if request.endpoint == 'client.client_dashboard' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('client.client_projects') }}" class="client-nav-item {% if request.endpoint == 'client.client_projects' or request.endpoint == 'client.client_project_view' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7M3 7L12 3L21 7M3 7L12 13M21 7L12 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Projects</span>
+                </a>
+
+                <a href="{{ url_for('client.client_profile') }}" class="client-nav-item {% if request.endpoint == 'client.client_profile' %}active{% endif %}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Profile</span>
+                </a>
+
+                <a href="{{ url_for('auth.logout') }}" class="client-nav-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 16L21 12M21 12L17 8M21 12H7M13 16V17C13 18.6569 11.6569 20 10 20H6C4.34315 20 3 18.6569 3 17V7C3 5.34315 4.34315 4 6 4H10C11.6569 4 13 5.34315 13 7V8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Logout</span>
+                </a>
+            </nav>
+
+            <div class="client-sidebar-footer">
+                <div class="client-user-info">
+                    <div class="client-user-avatar">
+                        {{ current_user.name[0].upper() if current_user.name else 'C' }}
+                    </div>
+                    <div class="client-user-details">
+                        <div class="client-user-name">{{ current_user.name or 'Client' }}</div>
+                        <div class="client-user-email">{{ current_user.email or '' }}</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="client-main-wrapper">
+            <!-- Top Header -->
+            <header class="client-top-header">
+                <div class="client-header-left">
+                    <button class="client-mobile-menu-btn" id="clientMobileMenuBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <h1 class="client-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+
+                <div class="client-header-right">
+                    <div class="client-header-user-avatar">
+                        {{ current_user.name[0].upper() if current_user.name else 'C' }}
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="client-main-content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Client Main JavaScript -->
+    <script src="{{ url_for('static', filename='js/client_main.js') }}"></script>
+
+    <!-- Page-specific JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

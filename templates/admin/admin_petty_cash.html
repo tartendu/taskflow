@@ -1,0 +1,648 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Petty Cash{% endblock %}
+{% block page_title %}Petty Cash{% endblock %}
+{% block page_subtitle %}Fund management, expenses, requests & reimbursements{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/petty_cash.css') }}">
+<style>
+    /* Override petty cash styles to fit admin dark theme */
+    .pc-container { padding: 0; }
+    .admin-header { display: none; }
+    .admin-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 20px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .card-header h3 { font-size: 14px; font-weight: 700; color: var(--text); margin: 0; }
+    .admin-tabs { background: none; border: none; }
+    .tabs-header { display: flex; gap: 4px; margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; flex-wrap: wrap; }
+    .tab-btn { padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
+    .tab-btn:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .stats-overview { display: grid !important; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .stat-info { display: flex; flex-direction: column; gap: 3px; }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
+    .pc-stat-value { font-size: 18px; font-weight: 800; color: var(--text); }
+    .pc-stat-value.balance-low { color: var(--red); }
+    .pc-stat-value.balance-positive { color: var(--green); }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .admin-table td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: var(--surface-2); }
+    .pc-table-scroll { overflow-x: auto; }
+    .loading-cell { text-align: center; color: var(--text-muted); padding: 40px !important; }
+    .pc-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px; color: var(--text-muted); font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; transition: opacity 0.15s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft); }
+    .btn-secondary:hover { border-color: var(--text-soft); color: var(--text); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .form-group { margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-soft); margin-bottom: 6px; }
+    .form-input { width: 100%; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--primary); }
+    .form-input option { background: var(--surface-2); }
+    .pc-form { padding: 20px; }
+    .pc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .pc-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; }
+    .pc-filter-bar { display: flex; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; }
+    .pc-filter-bar .form-group { margin-bottom: 0; }
+    /* Ledger specific */
+    .ledger-type { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+    .ledger-type.credit { background: rgba(16,185,129,0.15); color: var(--green); }
+    .ledger-type.debit { background: rgba(239,68,68,0.15); color: var(--red); }
+    .row-credit td { background: rgba(16,185,129,0.03); }
+    .row-debit td { background: rgba(239,68,68,0.03); }
+    .pc-amount-col { text-align: right !important; white-space: nowrap; }
+    .pc-bal-col { text-align: right !important; white-space: nowrap; }
+    .pc-bal-chip { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 700; background: rgba(16,185,129,0.1); color: var(--green); }
+    .pc-bal-chip.negative { background: rgba(239,68,68,0.1); color: var(--red); }
+    .txn-credit { color: var(--green); font-weight: 700; }
+    .txn-debit { color: var(--red); font-weight: 700; }
+    .category-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(99,102,241,0.1); color: var(--primary); text-transform: capitalize; }
+    .pc-badge { display: inline-block; background: var(--red); color: white; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 9px; margin-left: 4px; vertical-align: middle; }
+    .reimburse-badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-left: 6px; }
+    .reimburse-done { background: rgba(16,185,129,0.1); color: var(--green); }
+    .reimburse-pending { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .reimburse-rejected { background: rgba(239,68,68,0.1); color: var(--red); }
+    .pc-employee-tag { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    /* Row action buttons */
+    .pc-row-actions { display: flex; gap: 5px; align-items: center; }
+    .btn-icon-action { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-soft); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-icon-action:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-icon-danger { width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); color: var(--red); cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-icon-danger:hover { background: rgba(239,68,68,0.2); }
+    .btn-icon-reimburse { width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.1); color: var(--green); cursor: pointer; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-icon-reimburse:hover { background: rgba(16,185,129,0.2); }
+    /* Status badges */
+    .status-badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .status-pending { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .status-approved { background: rgba(16,185,129,0.1); color: var(--green); }
+    .status-rejected { background: rgba(239,68,68,0.1); color: var(--red); }
+    .status-reimbursed { background: rgba(16,185,129,0.1); color: var(--green); }
+    .status-not_reimbursed { background: rgba(239,68,68,0.1); color: var(--red); }
+    /* Receipt thumbnails */
+    .pc-receipt-thumbs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .pc-receipt-wrap { width: 36px; height: 36px; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); }
+    .pc-receipt-thumb { width: 36px; height: 36px; object-fit: cover; }
+    .pc-pdf-icon { font-size: 8px; font-weight: 700; color: var(--red); }
+    /* Receipt upload */
+    .pc-receipt-upload { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.15s; min-height: 90px; display: flex; align-items: center; justify-content: center; }
+    .pc-receipt-upload:hover { border-color: var(--primary); }
+    .pc-receipt-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
+    .pc-receipt-placeholder small { font-size: 11px; }
+    .pc-multi-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .pc-add-files-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px dashed var(--border); border-radius: 8px; cursor: pointer; color: var(--text-soft); font-size: 12px; transition: all 0.15s; }
+    .pc-add-files-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .pc-file-preview-area { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pc-pdf-indicator { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+    .pc-pdf-icon-lg { display: inline-block; background: rgba(239,68,68,0.1); color: var(--red); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+    .pc-scan-status { padding: 8px 12px; border-radius: 8px; font-size: 13px; background: rgba(99,102,241,0.1); color: var(--primary); margin-top: 8px; }
+    /* Toggle */
+    .pc-toggle-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+    /* Summary strip */
+    .pc-summary-strip { display: flex; gap: 16px; flex-wrap: wrap; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .pc-summary-card { background: var(--surface-2); border-radius: 8px; padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; }
+    .pc-summary-label { font-size: 11px; color: var(--text-muted); }
+    .pc-summary-value { font-size: 16px; font-weight: 700; color: var(--text); }
+    /* Category breakdown */
+    .pc-cat-breakdown { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .pc-cat-chip { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+    .pc-cat-chip strong { color: var(--text); }
+    .pc-cat-chip span { color: var(--text-muted); font-size: 11px; margin-left: 4px; }
+    /* Category list */
+    .pc-category-list { padding: 16px 20px; }
+    .pc-cat-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .pc-cat-item:last-child { border-bottom: none; }
+    .reimburse-filter-bar { display: flex; align-items: center; gap: 8px; }
+    /* Modals */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; display: flex; align-items: center; justify-content: center; }
+    .modal-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h4 { font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 20px 22px; }
+    /* Lightbox */
+    .pc-lightbox-card { background: var(--surface); border-radius: 14px; padding: 16px; max-width: 90vw; max-height: 90vh; position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .pc-lightbox-img { max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; }
+    .pc-lightbox-actions { display: flex; gap: 8px; }
+    /* Scan status */
+    .scan-processing { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+    /* ── Override petty_cash.css light-theme hardcoded values ── */
+    .pc-container .stat-card { background: var(--surface) !important; border-color: var(--border) !important; }
+    .pc-container .stat-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important; }
+    .pc-container .stat-label { color: var(--text-muted) !important; }
+    .admin-table tbody tr.row-credit { background: rgba(16,185,129,0.04) !important; }
+    .admin-table tbody tr.row-debit  { background: rgba(239,68,68,0.04) !important; }
+    .admin-table thead tr { background: none !important; }
+    .admin-table th { color: var(--text-muted) !important; background: var(--surface) !important; }
+    .admin-table td { color: var(--text) !important; background: transparent; }
+    .admin-table tr:hover td { background: var(--surface-2) !important; }
+    .pc-table-scroll { border: none !important; border-radius: 0 !important; }
+    .pc-filter-bar { background: var(--surface) !important; }
+    .pc-summary-strip { background: var(--surface) !important; }
+    .pc-cat-chip { background: var(--surface-2) !important; border-color: var(--border) !important; color: var(--text) !important; }
+    .pc-cat-chip strong { color: var(--text) !important; }
+    .pc-cat-chip span { color: var(--text-muted) !important; }
+    .pc-cat-item { color: var(--text) !important; border-color: var(--border) !important; }
+    .pc-category-item { background: var(--surface) !important; color: var(--text) !important; }
+    .pc-category-item:hover { background: var(--surface-2) !important; }
+    .ledger-type.credit { background: rgba(16,185,129,0.15) !important; color: var(--green) !important; }
+    .ledger-type.debit  { background: rgba(239,68,68,0.15) !important; color: var(--red) !important; }
+    .fund-type-initial { background: rgba(109,40,217,0.15) !important; color: #a78bfa !important; }
+    .fund-type-topup   { background: rgba(29,78,216,0.15) !important; color: #60a5fa !important; }
+    .source-direct  { background: var(--surface-2) !important; color: var(--text-muted) !important; }
+    .source-request { background: rgba(245,158,11,0.1) !important; color: var(--yellow) !important; }
+    .request-status-pending  { background: rgba(245,158,11,0.1) !important; color: var(--yellow) !important; border-color: rgba(245,158,11,0.3) !important; }
+    .request-status-approved { background: rgba(16,185,129,0.1) !important; color: var(--green) !important; border-color: rgba(16,185,129,0.3) !important; }
+    .request-status-rejected { background: rgba(239,68,68,0.1) !important; color: var(--red) !important; border-color: rgba(239,68,68,0.3) !important; }
+    .reimburse-done     { background: rgba(16,185,129,0.1) !important; color: var(--green) !important; border-color: rgba(16,185,129,0.3) !important; }
+    .reimburse-pending  { background: rgba(245,158,11,0.1) !important; color: var(--yellow) !important; border-color: rgba(245,158,11,0.3) !important; }
+    .reimburse-rejected { background: rgba(239,68,68,0.1) !important; color: var(--red) !important; border-color: rgba(239,68,68,0.3) !important; }
+    .modal-card { background: var(--surface) !important; }
+    .modal-card .modal-body { color: var(--text) !important; }
+    .modal-card label { color: var(--text-soft) !important; }
+    .modal-card input, .modal-card select, .modal-card textarea { background: var(--surface-2) !important; color: var(--text) !important; border-color: var(--border) !important; }
+    .modal-card input:focus, .modal-card select:focus, .modal-card textarea:focus { border-color: var(--primary) !important; }
+    .pc-receipt-upload { background: var(--surface-2) !important; border-color: var(--border) !important; }
+    .pc-receipt-upload:hover { border-color: var(--primary) !important; }
+    .pc-scan-ok  { background: rgba(16,185,129,0.1) !important; color: var(--green) !important; border-color: rgba(16,185,129,0.3) !important; }
+    .pc-scan-err { background: rgba(239,68,68,0.1) !important; color: var(--red) !important; border-color: rgba(239,68,68,0.3) !important; }
+    .pc-add-files-btn { color: var(--text-soft) !important; border-color: var(--border) !important; }
+    .pc-add-files-btn:hover { color: var(--primary) !important; border-color: var(--primary) !important; }
+    .btn-icon-danger:hover { background: rgba(239,68,68,0.2) !important; }
+    .btn-icon-reimburse:hover { background: rgba(16,185,129,0.2) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pc-container">
+    <!-- Stats (always visible for admin) -->
+    <div class="stats-overview" id="pcStats">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#00d4aa,#00b396);color:#fff;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 13C16 14.1046 15.1046 15 14 15H10C8.89543 15 8 14.1046 8 13C8 11.8954 8.89543 11 10 11H14C15.1046 11 16 11.8954 16 13Z" stroke="currentColor" stroke-width="2"/><path d="M2 10H22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-info"><span class="stat-label">Current Balance</span><span class="pc-stat-value" id="pcBalance">—</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-info"><span class="stat-label">Spent This Month</span><span class="pc-stat-value" id="pcMonthlySpend">—</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#4facfe,#00f2fe);color:#fff;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-info"><span class="stat-label">Pending Requests</span><span class="pc-stat-value" id="pcPendingCount">—</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 5.55228 9.44772 6 10 6H14C14.5523 6 15 5.55228 15 5M9 5C9 4.44772 9.44772 4 10 4H14C14.5523 4 15 4.44772 15 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-info"><span class="stat-label">Total Expenses</span><span class="pc-stat-value" id="pcTotalTxn">—</span></div>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <div class="tabs-header">
+            <button class="tab-btn active" data-tab="ledger">Ledger</button>
+            <button class="tab-btn" data-tab="add-expense">Add Expense</button>
+            <button class="tab-btn" data-tab="requests">Requests <span class="pc-badge" id="pendingBadge" style="display:none;"></span></button>
+            <button class="tab-btn" data-tab="fund">Fund</button>
+            <button class="tab-btn" data-tab="reports">Reports</button>
+            <button class="tab-btn" data-tab="categories">Categories</button>
+            <button class="tab-btn" data-tab="reimbursements">Reimbursements</button>
+        </div>
+
+        <!-- Ledger -->
+        <div class="tab-content active" id="ledger-tab">
+            <div class="admin-card">
+                <div class="card-header">
+                    <h3>Transaction Ledger</h3>
+                    <a href="/api/petty-cash/reports/export" class="btn btn-secondary btn-sm">⬇ Export CSV</a>
+                </div>
+                <div class="pc-table-scroll">
+                    <table class="admin-table">
+                        <thead><tr>
+                            <th style="width:36px;"></th><th>Date</th><th>Description</th><th>Category</th><th>Paid To</th>
+                            <th class="pc-amount-col">Credit</th><th class="pc-amount-col">Debit</th>
+                            <th style="width:80px;">Receipt</th><th class="pc-bal-col">Balance</th><th style="width:80px;">Actions</th>
+                        </tr></thead>
+                        <tbody id="ledgerBody"><tr><td colspan="10" class="loading-cell">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense -->
+        <div class="tab-content" id="add-expense-tab">
+            <div class="pc-split">
+                <div class="admin-card">
+                    <div class="card-header"><h3>Record Expense</h3></div>
+                    <div class="pc-form">
+                        <div class="pc-section-title">Receipt for AI Scan (optional — auto-fills fields)</div>
+                        <div class="pc-receipt-upload" id="receiptUploadArea" onclick="document.getElementById('receiptImageInput').click()">
+                            <div class="pc-receipt-placeholder" id="receiptPlaceholder">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span>Click to upload receipt image</span>
+                                <small>JPEG / PNG / WebP (for AI scan)</small>
+                            </div>
+                            <img id="receiptPreview" src="" alt="Receipt preview" style="display:none; max-height:180px; border-radius:8px; object-fit:contain;">
+                            <div id="receiptPdfIndicator" style="display:none;" class="pc-pdf-indicator">
+                                <span class="pc-pdf-icon-lg">PDF</span>
+                                <span id="receiptPdfName"></span>
+                            </div>
+                        </div>
+                        <input type="file" id="receiptImageInput" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onReceiptSelected(event)">
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="btn btn-secondary btn-sm" id="scanReceiptBtn" onclick="scanReceipt()" style="display:none; flex:1;"><span id="scanBtnText">Scan with AI</span></button>
+                            <button class="btn btn-sm" id="clearReceiptBtn" onclick="clearReceipt()" style="display:none; background:rgba(239,68,68,0.1); color:var(--red); border:1px solid rgba(239,68,68,0.3);">✕ Clear</button>
+                        </div>
+                        <div class="pc-scan-status" id="scanStatus" style="display:none;"></div>
+
+                        <div class="pc-section-title" style="margin-top:1rem;">Attach Receipts / Bills</div>
+                        <div class="pc-multi-upload">
+                            <div id="multiFilePreview" class="pc-file-preview-area"></div>
+                            <label class="pc-add-files-btn">
+                                <input type="file" id="multiFileInput" multiple accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onMultiFilesSelected(event)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add Files
+                            </label>
+                            <small style="color:var(--text-muted); font-size:0.72rem;">JPEG, PNG, WebP, PDF</small>
+                        </div>
+
+                        <div class="pc-section-title" style="margin-top:1.25rem;">Expense Details</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Date *</label><input type="date" id="expDate" class="form-input"></div>
+                            <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" id="expAmount" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Category *</label><select id="expCategory" class="form-input"></select></div>
+                            <div class="form-group"><label class="form-label">Paid To</label><input type="text" id="expPaidTo" class="form-input" placeholder="Vendor / person"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Description *</label><input type="text" id="expDescription" class="form-input" placeholder="What was purchased?"></div>
+                        <div class="form-group"><label class="form-label">Receipt / Voucher No.</label><input type="text" id="expReceipt" class="form-input" placeholder="Optional"></div>
+                        <div class="pc-section-title" style="margin-top:1rem;">Employee Reimbursement</div>
+                        <div class="form-group">
+                            <label class="pc-toggle-label">
+                                <input type="checkbox" id="expPaidByEmployee" onchange="toggleEmployeeFields()">
+                                <span>An employee paid for this (needs reimbursement)</span>
+                            </label>
+                        </div>
+                        <div id="employeeFields" style="display:none;">
+                            <div class="form-group"><label class="form-label">Employee Name *</label><input type="text" id="expEmployeeName" class="form-input" placeholder="Who paid?"></div>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitExpense()">Record Expense</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <div class="card-header"><h3>Recent Expenses</h3></div>
+                    <div class="pc-table-scroll">
+                        <table class="admin-table">
+                            <thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="pc-amount-col">Amount</th></tr></thead>
+                            <tbody id="recentExpBody"><tr><td colspan="4" class="loading-cell">—</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests -->
+        <div class="tab-content" id="requests-tab">
+            <div class="admin-card">
+                <div class="card-header">
+                    <h3>Expense Requests</h3>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn btn-primary btn-sm" onclick="openNewRequestModal()">+ New Request</button>
+                    <select id="requestsFilter" class="form-input" style="width:auto;" onchange="loadRequests()">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved (awaiting cash)</option>
+                        <option value="disbursed">Disbursed</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    </div>
+                </div>
+                <div class="pc-table-scroll">
+                    <table class="admin-table">
+                        <thead><tr><th>Employee</th><th>Date</th><th class="pc-amount-col">Amount</th><th>Category</th><th>Description</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="requestsBody"><tr><td colspan="8" class="loading-cell">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fund -->
+        <div class="tab-content" id="fund-tab">
+            <div class="pc-split">
+                <div class="admin-card">
+                    <div class="card-header"><h3>Add Fund</h3></div>
+                    <div class="pc-form">
+                        <div class="form-group"><label class="form-label">Type</label><select id="fundType" class="form-input"><option value="topup">Top-up</option><option value="initial">Initial Fund</option></select></div>
+                        <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" id="fundAmount" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+                        <div class="form-group"><label class="form-label">Notes</label><input type="text" id="fundNotes" class="form-input" placeholder="Optional note"></div>
+                        <button class="btn btn-primary" onclick="submitFund()">Add Fund</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <div class="card-header"><h3>Fund History</h3></div>
+                    <div class="pc-table-scroll">
+                        <table class="admin-table">
+                            <thead><tr><th>Date</th><th>Type</th><th class="pc-amount-col">Amount</th><th>Notes</th><th>By</th><th>Actions</th></tr></thead>
+                            <tbody id="fundBody"><tr><td colspan="6" class="loading-cell">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports -->
+        <div class="tab-content" id="reports-tab">
+            <div class="admin-card">
+                <div class="card-header"><h3>Reports</h3><button class="btn btn-secondary btn-sm" onclick="exportReport()">⬇ Export CSV</button></div>
+                <div class="pc-filter-bar">
+                    <div class="form-group"><label class="form-label">From</label><input type="date" id="reportStart" class="form-input"></div>
+                    <div class="form-group"><label class="form-label">To</label><input type="date" id="reportEnd" class="form-input"></div>
+                    <div class="form-group"><label class="form-label">Category</label><select id="reportCategory" class="form-input"><option value="">All Categories</option></select></div>
+                    <button class="btn btn-primary btn-sm" onclick="loadReports()" style="align-self:flex-end;">Apply</button>
+                </div>
+                <div class="pc-summary-strip" id="reportSummary" style="display:none;">
+                    <div class="pc-summary-card"><span class="pc-summary-label">Total Spent</span><span class="pc-summary-value txn-debit" id="reportTotal">—</span></div>
+                    <div class="pc-summary-card"><span class="pc-summary-label">Transactions</span><span class="pc-summary-value" id="reportCount">—</span></div>
+                </div>
+                <div class="pc-cat-breakdown" id="reportCatBreakdown"></div>
+                <div class="pc-table-scroll">
+                    <table class="admin-table">
+                        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid To</th><th>Receipt</th><th class="pc-amount-col">Amount</th></tr></thead>
+                        <tbody id="reportBody"><tr><td colspan="6" class="loading-cell">Apply filters to load report.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="tab-content" id="categories-tab">
+            <div class="pc-split">
+                <div class="admin-card">
+                    <div class="card-header"><h3>Add Category</h3></div>
+                    <div class="pc-form">
+                        <div class="form-group"><label class="form-label">Category Name *</label><input type="text" id="newCategoryName" class="form-input" placeholder="e.g. Courier"></div>
+                        <button class="btn btn-primary" onclick="addCategory()">Add Category</button>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <div class="card-header"><h3>All Categories</h3></div>
+                    <div id="categoryList" class="pc-category-list">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reimbursements -->
+        <div class="tab-content" id="reimbursements-tab">
+            <div class="admin-card">
+                <div class="card-header">
+                    <h3>Employee Reimbursements</h3>
+                    <div class="reimburse-filter-bar">
+                        <select id="reimburseFilterStatus" class="form-input" style="width:auto; font-size:0.85rem; padding:6px 10px;" onchange="loadReimbursements()">
+                            <option value="all">All</option><option value="pending">Pending</option>
+                            <option value="reimbursed">Reimbursed</option><option value="not_reimbursed">Not Reimbursed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pc-summary-strip" id="reimburseSummary"></div>
+                <div class="pc-table-scroll">
+                    <table class="admin-table">
+                        <thead><tr><th>Date</th><th>Employee</th><th>Description</th><th>Category</th><th>Amount</th><th>Status</th><th>Reimbursed On</th><th>Mode</th><th>Actions</th></tr></thead>
+                        <tbody id="reimburseBody"><tr><td colspan="9" class="loading-cell">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Modals (identical to petty_cash.html) -->
+<div class="modal-overlay" id="newRequestModal" style="display:none;">
+    <div class="modal-card" style="max-width:520px;">
+        <div class="modal-header"><h4>New Expense Request</h4><button class="modal-close" onclick="closeNewRequestModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Date *</label><input type="date" id="reqDate" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" id="reqAmount" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Category *</label><select id="reqCategory" class="form-input"></select></div>
+            <div class="form-group"><label class="form-label">Description *</label><input type="text" id="reqDescription" class="form-input" placeholder="What was the expense for?"></div>
+            <div class="form-group"><label class="form-label">Reason / Justification</label><textarea id="reqReason" class="form-input" rows="2" placeholder="Why is this needed?"></textarea></div>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeNewRequestModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex:2;" onclick="submitRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="receiptLightbox" style="display:none;" onclick="closeReceiptLightbox(event)">
+    <div class="pc-lightbox-card" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeReceiptLightbox()" style="position:absolute;top:12px;right:12px;">&times;</button>
+        <img id="lightboxImg" src="" alt="Receipt" class="pc-lightbox-img">
+        <div class="pc-lightbox-actions">
+            <a id="lightboxDownload" href="" download class="btn btn-primary btn-sm">⬇ Download</a>
+            <a id="lightboxOpen" href="" target="_blank" class="btn btn-secondary btn-sm">Open Full Size</a>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editExpenseModal" style="display:none;">
+    <div class="modal-card" style="max-width:560px;">
+        <div class="modal-header"><h4>Edit Expense</h4><button class="modal-close" onclick="closeEditExpenseModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Date *</label><input type="date" id="editExpDate" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" id="editExpAmount" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">Category *</label><select id="editExpCategory" class="form-input"></select></div>
+                <div class="form-group"><label class="form-label">Paid To</label><input type="text" id="editExpPaidTo" class="form-input" placeholder="Vendor / person"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Description *</label><input type="text" id="editExpDescription" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Receipt / Voucher No.</label><input type="text" id="editExpReceipt" class="form-input"></div>
+            <div class="form-group">
+                <label class="form-label">Attached Receipts</label>
+                <div id="editFilePreview" class="pc-file-preview-area"></div>
+                <label class="pc-add-files-btn" style="margin-top:8px;">
+                    <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none;" onchange="onEditFilesSelected(event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add Files
+                </label>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeEditExpenseModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex:2;" onclick="submitEditExpense()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editFundModal" style="display:none;">
+    <div class="modal-card" style="max-width:460px;">
+        <div class="modal-header"><h4>Edit Fund Entry</h4><button class="modal-close" onclick="closeEditFundModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label class="form-label">Amount (₹) *</label><input type="number" id="editFundAmount" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+            <div class="form-group"><label class="form-label">Type</label><select id="editFundType" class="form-input"><option value="topup">Top-up</option><option value="initial">Initial Fund</option></select></div>
+            <div class="form-group"><label class="form-label">Notes</label><input type="text" id="editFundNotes" class="form-input" placeholder="Optional note"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeEditFundModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex:2;" onclick="submitEditFund()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="reviewModal" style="display:none;">
+    <div class="modal-card" style="max-width:460px;">
+        <div class="modal-header"><h4>Review Request</h4><button class="modal-close" onclick="closeReviewModal()">&times;</button></div>
+        <div class="modal-body">
+            <p id="reviewInfo" style="margin-bottom:12px; color:var(--text-muted); font-size:0.88rem;"></p>
+            <div class="form-group"><label class="form-label">Review Note (optional)</label><textarea id="reviewNote" class="form-input" rows="2" placeholder="Add a note..."></textarea></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeReviewModal()">Cancel</button>
+                <button class="btn" style="flex:1; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:var(--red);" onclick="submitReview('rejected')">Reject</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="submitReview('approved')">Approve</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editRequestModal" style="display:none;">
+    <div class="modal-card" style="max-width:500px;">
+        <div class="modal-header"><h4>Edit Request</h4><button class="modal-close" onclick="closeEditRequestModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-group"><label class="form-label">Date</label><input type="date" id="editReqDate" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Amount (₹)</label><input type="number" id="editReqAmount" class="form-input" min="0.01" step="0.01"></div>
+            <div class="form-group"><label class="form-label">Category</label><select id="editReqCategory" class="form-input"></select></div>
+            <div class="form-group"><label class="form-label">Description</label><input type="text" id="editReqDescription" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Reason</label><textarea id="editReqReason" class="form-input" rows="2"></textarea></div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeEditRequestModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="submitEditRequest()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="disburseModal" style="display:none;">
+    <div class="modal-card" style="max-width:440px;">
+        <div class="modal-header"><h4>Disburse Cash</h4><button class="modal-close" onclick="closeDisburseModal()">&times;</button></div>
+        <div class="modal-body">
+            <p id="disburseInfo" style="margin-bottom:12px; color:var(--text-muted); font-size:0.88rem;"></p>
+            <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#10b981;">
+                Cash will be physically disbursed and recorded in the ledger.
+            </div>
+            <div class="form-group"><label class="form-label">Disbursal Date</label><input type="date" id="disburseDate" class="form-input"></div>
+            <div class="form-group">
+                <label class="form-label">Payment Mode</label>
+                <select id="disbursePaymentMode" class="form-input">
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="upi">UPI</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Paid To</label>
+                <input type="text" id="disbursePaidTo" class="form-input" placeholder="Employee name or vendor (e.g. office boy, tea vendor)">
+                <span style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">Leave blank to default to the requesting employee.</span>
+            </div>
+            <div class="form-group"><label class="form-label">Note (optional)</label><input type="text" id="disburseNote" class="form-input" placeholder="Any reference or note"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeDisburseModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex:2; background:linear-gradient(135deg,#10b981,#059669);" onclick="submitDisburse()">Confirm Disbursement</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="reimburseModal" style="display:none;">
+    <div class="modal-card" style="max-width:480px;">
+        <div class="modal-header"><h4>Reimburse Employee</h4><button class="modal-close" onclick="closeReimburseModal()">&times;</button></div>
+        <div class="modal-body">
+            <p id="reimburseInfo" style="margin-bottom:12px; color:var(--text-muted); font-size:0.88rem;"></p>
+            <div class="form-group">
+                <label class="form-label">Reimbursed From *</label>
+                <select id="reimburseSource" class="form-input" onchange="onReimburseSourceChange()">
+                    <option value="company_bank">Company Bank Account</option>
+                    <option value="petty_cash">Petty Cash Fund</option>
+                </select>
+                <span id="reimburseSourceHint" class="form-hint" style="color:#64748b; font-size:12px; margin-top:4px; display:block;">Reimbursed via bank — will not affect petty cash balance.</span>
+            </div>
+            <div class="form-group"><label class="form-label">Payment Date</label><input type="date" id="reimburseDate" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Payment Mode</label>
+                <select id="reimbursePaymentMode" class="form-input">
+                    <option value="cash">Cash</option><option value="bank_transfer">Bank Transfer</option>
+                    <option value="upi">UPI</option><option value="cheque">Cheque</option><option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Note (optional)</label><textarea id="reimburseNote" class="form-input" rows="2" placeholder="Transaction ref, etc."></textarea></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-secondary" style="flex:1;" onclick="closeReimburseModal()">Cancel</button>
+                <button class="btn" style="flex:1; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:var(--red);" onclick="submitReimburse('not_reimbursed')">Won't Reimburse</button>
+                <button class="btn btn-primary" style="flex:1;" onclick="submitReimburse('reimbursed')">Mark Reimbursed</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const IS_ACCOUNTANT = true;
+    const IS_SUPERADMIN_PC = true;
+
+    // Override apiCall to work without the base.html helper
+    async function apiCall(url, options = {}) {
+        const res = await fetch(url, options);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+    }
+
+    // Override showNotification for admin theme
+    function showNotification(msg, type = 'success') {
+        const n = document.createElement('div');
+        n.style.cssText = `position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;color:white;background:${type==='success'?'#10b981':type==='error'?'#ef4444':'#6366f1'};box-shadow:0 8px 24px rgba(0,0,0,0.3);transition:opacity 0.3s;`;
+        n.textContent = msg;
+        document.body.appendChild(n);
+        setTimeout(() => { n.style.opacity='0'; setTimeout(() => n.remove(), 300); }, 3000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatMoney(val) {
+        if (val === null || val === undefined) return '—';
+        return '₹' + parseFloat(val).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    function formatDate(str) {
+        if (!str) return '—';
+        try { return new Date(str).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}); }
+        catch { return str?.substring(0,10) || '—'; }
+    }
+
+    function formatCategory(cat) {
+        if (!cat || cat === '—') return '—';
+        return cat.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+</script>
+<script src="{{ url_for('static', filename='js/petty_cash.js') }}"></script>
+{% endblock %}

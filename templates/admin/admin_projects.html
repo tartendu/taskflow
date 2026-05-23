@@ -1,0 +1,68 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Projects{% endblock %}
+{% block page_title %}Projects{% endblock %}
+{% block page_subtitle %}All projects across the platform{% endblock %}
+
+{% block topbar_actions %}
+<input class="search-input" id="projSearch" placeholder="Search projects..." oninput="filterProjects()">
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid stat-grid-3" style="margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-icon indigo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.86.18-1.3C18 2.57 15.43 1 13 1c-1.36 0-2.55.57-3.43 1.47L8 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z"/></svg></div><div class="stat-val" id="totalProj">—</div><div class="stat-lbl">Total Projects</div></div>
+    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="stat-val" id="totalTasks">—</div><div class="stat-lbl">Total Tasks</div></div>
+    <div class="stat-card"><div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div><div class="stat-val" id="totalMembers">—</div><div class="stat-lbl">Total Members</div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-header"><div class="panel-title">All Projects</div></div>
+    <div id="projTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allProjects = [];
+
+async function loadProjects() {
+    try {
+        const res = await fetch('/api/admin/projects');
+        const data = await res.json();
+        allProjects = data.projects || [];
+        document.getElementById('totalProj').textContent = allProjects.length;
+        document.getElementById('totalTasks').textContent = allProjects.reduce((s,p) => s+(p.task_count||0),0);
+        document.getElementById('totalMembers').textContent = allProjects.reduce((s,p) => s+(p.member_count||0),0);
+        renderProjects(allProjects);
+    } catch(e) {
+        document.getElementById('projTableWrap').innerHTML = '<div class="empty-state">Failed to load projects.</div>';
+    }
+}
+
+function renderProjects(projects) {
+    if (!projects.length) {
+        document.getElementById('projTableWrap').innerHTML = '<div class="empty-state">No projects found.</div>';
+        return;
+    }
+    const rows = projects.map(p => `
+        <tr>
+            <td><strong>${p.name || '—'}</strong><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${p.description ? p.description.substring(0,60)+'...' : ''}</div></td>
+            <td>${p.owner_name || p.owner_id || '—'}</td>
+            <td style="text-align:center;">${p.task_count ?? 0}</td>
+            <td style="text-align:center;">${p.member_count ?? 0}</td>
+            <td style="color:var(--text-muted);font-size:12px;">${p.created_at ? p.created_at.substring(0,10) : '—'}</td>
+        </tr>`).join('');
+    document.getElementById('projTableWrap').innerHTML = `
+        <table class="tbl">
+            <thead><tr><th>Project</th><th>Owner</th><th style="text-align:center;">Tasks</th><th style="text-align:center;">Members</th><th>Created</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+
+function filterProjects() {
+    const q = document.getElementById('projSearch').value.toLowerCase();
+    renderProjects(allProjects.filter(p => (p.name||'').toLowerCase().includes(q) || (p.owner_name||'').toLowerCase().includes(q)));
+}
+
+loadProjects();
+</script>
+{% endblock %}

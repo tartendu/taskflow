@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Company Purchases - TaskFlow{% endblock %}
+{% block page_title %}Company Purchases{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/superadmin.css') }}">
+<style>
+    .cp-container { max-width: 1200px; }
+    .cp-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+    .cp-title-wrap { display: flex; align-items: center; gap: 12px; }
+    .cp-title-wrap h2 { font-size: 1.4rem; font-weight: 700; }
+    .cp-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 12px; color: #fff; background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+    .cp-badge.view { background: linear-gradient(135deg,#3b82f6,#2563eb); }
+
+    .cp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .cp-stat-card { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 14px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .cp-stat-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+    .cp-stat-label { font-size: 0.78rem; color: var(--text-secondary, #64748b); display: block; }
+    .cp-stat-value { font-size: 1.25rem; font-weight: 700; }
+
+    .cp-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .cp-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cp-filters input, .cp-filters select { padding: 8px 10px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; background: var(--surface, #fff); color: var(--text-primary, #111); font-size: 0.85rem; }
+
+    .cp-table-wrap { background: var(--surface, #fff); border: 1px solid var(--border, #e5e7eb); border-radius: 14px; overflow-x: auto; }
+    table.cp-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .cp-table th { text-align: left; padding: 12px 14px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-secondary, #64748b); border-bottom: 1px solid var(--border, #e5e7eb); white-space: nowrap; }
+    .cp-table td { padding: 12px 14px; border-bottom: 1px solid var(--border, #f1f5f9); vertical-align: middle; }
+    .cp-table tr:last-child td { border-bottom: none; }
+    .cp-amount { font-weight: 700; color: #ef4444; white-space: nowrap; }
+    .cp-cat-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(99,102,241,0.12); color: #6366f1; text-transform: capitalize; }
+    .cp-receipt-link { color: #6366f1; text-decoration: none; font-size: 0.8rem; }
+    .cp-loading, .cp-empty { text-align: center; padding: 40px; color: var(--text-secondary, #94a3b8); }
+
+    .cp-btn { padding: 9px 16px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .cp-btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+    .cp-btn-secondary { background: var(--surface-2, #f1f5f9); color: var(--text-primary, #111); border: 1px solid var(--border, #e5e7eb); }
+    .cp-btn-icon { background: none; border: none; cursor: pointer; padding: 5px 7px; border-radius: 6px; font-size: 0.85rem; }
+    .cp-btn-icon.edit { color: #6366f1; }
+    .cp-btn-icon.del { color: #ef4444; }
+    .cp-btn-icon:hover { background: var(--surface-2, #f1f5f9); }
+
+    /* Modal */
+    .cp-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 700; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    .cp-modal-overlay.show { display: flex; }
+    .cp-modal { background: var(--surface, #fff); border-radius: 16px; width: 100%; max-width: 520px; padding: 26px; box-shadow: 0 30px 70px rgba(0,0,0,0.35); }
+    .cp-modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .cp-modal-sub { font-size: 0.82rem; color: var(--text-secondary, #64748b); margin-bottom: 18px; }
+    .cp-field { margin-bottom: 14px; }
+    .cp-field label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 5px; color: var(--text-secondary, #475569); }
+    .cp-field input, .cp-field select, .cp-field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border, #e5e7eb); border-radius: 8px; background: var(--surface-2, #f8fafc); color: var(--text-primary, #111); font-size: 0.9rem; font-family: inherit; }
+    .cp-field textarea { resize: vertical; min-height: 60px; }
+    .cp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .cp-modal-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #dc2626; padding: 9px 12px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 12px; display: none; }
+    .cp-modal-error.show { display: block; }
+    .cp-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .cp-modal-actions .cp-btn-primary { flex: 1; }
+    .cp-file-list { font-size: 0.78rem; color: var(--text-secondary, #64748b); margin-top: 6px; }
+    .cp-file-list a { color: #6366f1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cp-container">
+
+    <div class="cp-header">
+        <div class="cp-title-wrap">
+            <h2>Company Purchases</h2>
+            {% if is_superadmin or can_manage_purchases %}
+                <span class="cp-badge">Manage Access</span>
+            {% elif can_view_purchases %}
+                <span class="cp-badge view">View Only</span>
+            {% endif %}
+        </div>
+        {% if is_superadmin or can_manage_purchases %}
+        <button class="cp-btn cp-btn-primary" onclick="openPurchaseModal()">+ Add Purchase</button>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="cp-stats">
+        <div class="cp-stat-card">
+            <div class="cp-stat-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div>
+                <span class="cp-stat-label">Total Spent</span>
+                <span class="cp-stat-value" id="cpTotalSpent">--</span>
+            </div>
+        </div>
+        <div class="cp-stat-card">
+            <div class="cp-stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 2v4M16 2v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div>
+                <span class="cp-stat-label">This Month</span>
+                <span class="cp-stat-value" id="cpMonthlySpent">--</span>
+            </div>
+        </div>
+        <div class="cp-stat-card">
+            <div class="cp-stat-icon" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+                <span class="cp-stat-label">Total Purchases</span>
+                <span class="cp-stat-value" id="cpCount">--</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="cp-toolbar">
+        <div class="cp-filters">
+            <input type="date" id="cpFilterStart" title="From">
+            <span style="color:var(--text-secondary,#94a3b8);">to</span>
+            <input type="date" id="cpFilterEnd" title="To">
+            <button class="cp-btn cp-btn-secondary" onclick="loadPurchases()">Apply</button>
+            <button class="cp-btn cp-btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+        <a class="cp-btn cp-btn-secondary" href="/api/purchases/export">⬇ Export CSV</a>
+    </div>
+
+    <!-- Table -->
+    <div class="cp-table-wrap">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Item / Description</th>
+                    <th>Vendor</th>
+                    <th>Category</th>
+                    <th>Payment</th>
+                    <th>Amount</th>
+                    <th>Receipt</th>
+                    <th>Recorded By</th>
+                    {% if is_superadmin or can_manage_purchases %}<th style="width:80px;">Actions</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody id="cpTableBody">
+                <tr><td colspan="9" class="cp-loading">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add / Edit Modal -->
+{% if is_superadmin or can_manage_purchases %}
+<div class="cp-modal-overlay" id="cpModal">
+    <div class="cp-modal">
+        <h3 id="cpModalTitle">Add Purchase</h3>
+        <div class="cp-modal-sub">Record a company purchase. Fields marked * are required.</div>
+        <div class="cp-modal-error" id="cpModalError"></div>
+
+        <div class="cp-field">
+            <label>Item / Description *</label>
+            <input type="text" id="cpItem" placeholder="e.g. Office laptop, Printer toner">
+        </div>
+        <div class="cp-field-row">
+            <div class="cp-field">
+                <label>Amount (₹) *</label>
+                <input type="number" id="cpAmount" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="cp-field">
+                <label>Purchase Date *</label>
+                <input type="date" id="cpDate">
+            </div>
+        </div>
+        <div class="cp-field-row">
+            <div class="cp-field">
+                <label>Vendor / Supplier</label>
+                <input type="text" id="cpVendor" placeholder="e.g. Amazon, Local store">
+            </div>
+            <div class="cp-field">
+                <label>Category</label>
+                <select id="cpCategory">
+                    <option value="general">General</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="software">Software / Subscriptions</option>
+                    <option value="office_supplies">Office Supplies</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="cp-field">
+            <label>Payment Mode</label>
+            <select id="cpPaymentMode">
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+                <option value="cheque">Cheque</option>
+            </select>
+        </div>
+        <div class="cp-field">
+            <label>Notes</label>
+            <textarea id="cpNotes" placeholder="Optional details..."></textarea>
+        </div>
+        <div class="cp-field">
+            <label>Receipt / Invoice (image or PDF)</label>
+            <input type="file" id="cpReceiptFiles" multiple accept="image/*,application/pdf">
+            <div class="cp-file-list" id="cpFileList"></div>
+        </div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn cp-btn-secondary" onclick="closePurchaseModal()">Cancel</button>
+            <button class="cp-btn cp-btn-primary" id="cpSaveBtn" onclick="savePurchase()">Save Purchase</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const CP_CAN_MANAGE = {{ 'true' if (is_superadmin or can_manage_purchases) else 'false' }};
+</script>
+<script src="{{ url_for('static', filename='js/purchases.js') }}"></script>
+{% endblock %}

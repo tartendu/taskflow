@@ -1,0 +1,137 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Holidays{% endblock %}
+{% block page_title %}Holidays{% endblock %}
+{% block page_subtitle %}Manage company holidays and national holidays{% endblock %}
+
+{% block topbar_actions %}
+<select class="select-input" id="holYear" onchange="loadHolidays()"></select>
+<button class="btn-primary" onclick="openHolModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    Add Holiday
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+    <div class="panel-header"><div class="panel-title">Holiday Calendar</div></div>
+    <div id="holTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;align-items:center;justify-content:center;" id="holModal">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:420px;max-width:90vw;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:20px;" id="holModalTitle">Add Holiday</h3>
+        <input type="hidden" id="holId">
+        <div style="margin-bottom:14px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Holiday Name</label>
+            <input id="holName" type="text" placeholder="e.g. Diwali" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+        </div>
+        <div style="margin-bottom:14px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Date</label>
+            <input id="holDate" type="date" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Type</label>
+            <select id="holType" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+                <option value="national">National</option>
+                <option value="company">Company</option>
+                <option value="optional">Optional</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeHolModal()" style="flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);cursor:pointer;">Cancel</button>
+            <button onclick="saveHoliday()" style="flex:1;padding:10px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;" id="holSaveBtn">Save Holiday</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const yearSel = document.getElementById('holYear');
+const curYear = new Date().getFullYear();
+for (let y = curYear+1; y >= curYear-1; y--) {
+    yearSel.appendChild(new Option(y, y, y === curYear, y === curYear));
+}
+
+async function loadHolidays() {
+    const year = yearSel.value;
+    document.getElementById('holTableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+    try {
+        const res = await fetch(`/api/admin/holidays?year=${year}`);
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.holidays || []);
+        if (!items.length) {
+            document.getElementById('holTableWrap').innerHTML = '<div class="empty-state">No holidays found for this year.</div>';
+            return;
+        }
+        const typeColors = {national:'indigo', company:'green', optional:'yellow'};
+        const rows = items.map(h => {
+            const dateStr = h.date ? h.date.substring(0, 10) : '—';
+            const nameEsc = h.name.replace(/'/g, "\\'");
+            return `<tr>
+                <td><strong>${h.name}</strong></td>
+                <td>${dateStr}</td>
+                <td><span class="badge ${typeColors[h.type]||'active'}">${h.type}</span></td>
+                <td>
+                    <div style="display:flex;gap:6px;">
+                        <button onclick="editHoliday('${h.id}','${nameEsc}','${dateStr}','${h.type}')" style="padding:5px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;color:var(--text-soft);font-size:12px;cursor:pointer;">Edit</button>
+                        <button onclick="deleteHoliday('${h.id}','${nameEsc}')" style="padding:5px 10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:6px;color:var(--red);font-size:12px;cursor:pointer;">Delete</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+        document.getElementById('holTableWrap').innerHTML = `
+            <table class="tbl">
+                <thead><tr><th>Name</th><th>Date</th><th>Type</th><th>Actions</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('holTableWrap').innerHTML = '<div class="empty-state">Failed to load holidays.</div>';
+    }
+}
+
+function openHolModal() {
+    document.getElementById('holId').value = '';
+    document.getElementById('holName').value = '';
+    document.getElementById('holDate').value = '';
+    document.getElementById('holType').value = 'national';
+    document.getElementById('holModalTitle').textContent = 'Add Holiday';
+    document.getElementById('holModal').style.display = 'flex';
+}
+
+function editHoliday(id, name, date, type) {
+    document.getElementById('holId').value = id;
+    document.getElementById('holName').value = name;
+    document.getElementById('holDate').value = date;
+    document.getElementById('holType').value = type;
+    document.getElementById('holModalTitle').textContent = 'Edit Holiday';
+    document.getElementById('holModal').style.display = 'flex';
+}
+
+function closeHolModal() { document.getElementById('holModal').style.display = 'none'; }
+
+async function saveHoliday() {
+    const id = document.getElementById('holId').value;
+    const body = { name: document.getElementById('holName').value, date: document.getElementById('holDate').value, type: document.getElementById('holType').value };
+    if (!body.name || !body.date) return alert('Name and date are required.');
+    const url = id ? `/api/admin/holidays/${id}` : '/api/admin/holidays';
+    const method = id ? 'PUT' : 'POST';
+    try {
+        await fetch(url, {method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        closeHolModal();
+        loadHolidays();
+    } catch(e) { alert('Error saving holiday.'); }
+}
+
+async function deleteHoliday(id, name) {
+    if (!confirm(`Delete holiday "${name}"?`)) return;
+    try {
+        await fetch(`/api/admin/holidays/${id}`, {method:'DELETE'});
+        loadHolidays();
+    } catch(e) { alert('Error deleting holiday.'); }
+}
+
+loadHolidays();
+</script>
+{% endblock %}

@@ -1,0 +1,310 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Office hours, geofencing, leave policy{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- Office Hours -->
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Office Hours</div><div class="panel-sub">Check-in/out window and half-day threshold</div></div></div>
+        <div class="panel-body">
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Office Start Time</label>
+                <input type="time" id="officeStart" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Office End Time</label>
+                <input type="time" id="officeEnd" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Half-Day Threshold (hours)</label>
+                <input type="number" id="halfDayThreshold" min="1" max="8" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div id="officeMsg" style="font-size:12px;margin-bottom:12px;"></div>
+            <button class="btn-primary" onclick="saveOfficeSettings()" style="width:100%;justify-content:center;">Save Office Settings</button>
+        </div>
+    </div>
+
+    <!-- Geofencing -->
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Geofencing</div><div class="panel-sub">Office location and allowed radius</div></div></div>
+        <div class="panel-body">
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Latitude</label>
+                <input type="number" step="any" id="geoLat" placeholder="28.6139" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Longitude</label>
+                <input type="number" step="any" id="geoLng" placeholder="77.2090" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Radius (meters)</label>
+                <input type="number" id="geoRadius" placeholder="200" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div id="geoMsg" style="font-size:12px;margin-bottom:12px;"></div>
+            <button class="btn-primary" onclick="saveGeoSettings()" style="width:100%;justify-content:center;">Save Geofence Settings</button>
+        </div>
+    </div>
+
+    <!-- Leave Policy -->
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Leave Policy</div><div class="panel-sub">Monthly leave allowances per type</div></div></div>
+        <div class="panel-body">
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Sick Leave (days/month)</label>
+                <input type="number" id="sickLeave" min="0" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Casual Leave (days/month)</label>
+                <input type="number" id="casualLeave" min="0" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Max Carry Forward (days)</label>
+                <input type="number" id="carryForward" min="0" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div id="leaveMsg" style="font-size:12px;margin-bottom:12px;"></div>
+            <button class="btn-primary" onclick="saveLeaveSettings()" style="width:100%;justify-content:center;">Save Leave Policy</button>
+        </div>
+    </div>
+
+    <!-- Face Recognition -->
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Face Recognition</div><div class="panel-sub">Require face scan for check-in</div></div></div>
+        <div class="panel-body">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <div>
+                    <div style="font-size:14px;font-weight:500;color:var(--text);">Face-Only Check-In</div>
+                    <div style="font-size:12px;color:var(--text-soft);margin-top:2px;">When enabled, employees must verify via face scan to check in</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;">
+                    <input type="checkbox" id="faceOnlyToggle" onchange="saveFaceSettings()" style="opacity:0;width:0;height:0;">
+                    <span style="position:absolute;cursor:pointer;inset:0;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;transition:.2s;" id="faceToggleTrack"></span>
+                </label>
+            </div>
+            <div id="faceSettingsMsg" style="font-size:12px;margin-bottom:0;"></div>
+        </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Change Password</div><div class="panel-sub">Update your admin account password</div></div></div>
+        <div class="panel-body">
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Current Password</label>
+                <input type="password" id="currentPassword" autocomplete="current-password" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">New Password</label>
+                <input type="password" id="newPassword" autocomplete="new-password" placeholder="At least 6 characters" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div style="margin-bottom:20px;">
+                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);display:block;margin-bottom:6px;">Confirm New Password</label>
+                <input type="password" id="confirmPassword" autocomplete="new-password" style="width:100%;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;">
+            </div>
+            <div id="passwordMsg" style="font-size:12px;margin-bottom:12px;"></div>
+            <button class="btn-primary" id="changePasswordBtn" onclick="changeAdminPassword()" style="width:100%;justify-content:center;">Change Password</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Face Enrollment Table (full-width below the grid) -->
+<div class="panel" style="margin-top:24px;">
+    <div class="panel-header">
+        <div>
+            <div class="panel-title">Face Enrollment Status</div>
+            <div class="panel-sub">Employees who have or haven't enrolled their face</div>
+        </div>
+        <button class="btn-primary" onclick="loadFaceEnrollmentStatus()" style="font-size:12px;padding:8px 14px;">Refresh</button>
+    </div>
+    <div class="panel-body" style="padding:0;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="border-bottom:1px solid var(--border);">
+                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);">Employee</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);">Username</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);">Status</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);">Enrolled At</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-soft);">Action</th>
+                </tr>
+            </thead>
+            <tbody id="faceEnrollmentBody">
+                <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-soft);">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadSettings() {
+    try {
+        const [officeRes, leaveRes] = await Promise.all([
+            fetch('/api/admin/settings/office'),
+            fetch('/api/admin/settings/leave')
+        ]);
+        const s = await officeRes.json();
+        const l = await leaveRes.json();
+        document.getElementById('officeStart').value = s.office_start || '09:00';
+        document.getElementById('officeEnd').value = s.office_end || '18:00';
+        document.getElementById('halfDayThreshold').value = s.half_day_threshold || 4;
+        document.getElementById('geoLat').value = s.office_latitude || '';
+        document.getElementById('geoLng').value = s.office_longitude || '';
+        document.getElementById('geoRadius').value = s.geofence_radius_meters || 200;
+        document.getElementById('sickLeave').value = l.monthly_sick_leaves ?? 2;
+        document.getElementById('casualLeave').value = l.monthly_casual_leaves ?? 2;
+        document.getElementById('carryForward').value = l.max_carry_forward ?? 3;
+    } catch(e) {}
+}
+
+function showMsg(id, msg, ok) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.color = ok ? 'var(--green)' : 'var(--red)';
+    setTimeout(() => el.textContent = '', 3000);
+}
+
+async function saveOfficeSettings() {
+    try {
+        const res = await fetch('/api/admin/settings/office', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+            office_start: document.getElementById('officeStart').value,
+            office_end: document.getElementById('officeEnd').value,
+            half_day_threshold: parseFloat(document.getElementById('halfDayThreshold').value)
+        })});
+        if (!res.ok) throw new Error();
+        showMsg('officeMsg', '✓ Saved successfully', true);
+    } catch(e) { showMsg('officeMsg', 'Failed to save', false); }
+}
+
+async function saveGeoSettings() {
+    try {
+        const res = await fetch('/api/admin/settings/office', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+            office_latitude: parseFloat(document.getElementById('geoLat').value),
+            office_longitude: parseFloat(document.getElementById('geoLng').value),
+            geofence_radius_meters: parseInt(document.getElementById('geoRadius').value)
+        })});
+        if (!res.ok) throw new Error();
+        showMsg('geoMsg', '✓ Saved successfully', true);
+    } catch(e) { showMsg('geoMsg', 'Failed to save', false); }
+}
+
+async function saveLeaveSettings() {
+    try {
+        const res = await fetch('/api/admin/settings/leave', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+            monthly_sick_leaves: parseInt(document.getElementById('sickLeave').value),
+            monthly_casual_leaves: parseInt(document.getElementById('casualLeave').value),
+            max_carry_forward: parseInt(document.getElementById('carryForward').value)
+        })});
+        if (!res.ok) throw new Error();
+        showMsg('leaveMsg', '✓ Saved successfully', true);
+    } catch(e) { showMsg('leaveMsg', 'Failed to save', false); }
+}
+
+loadSettings();
+loadFaceEnrollmentStatus();
+loadFaceSettings();
+
+async function loadFaceSettings() {
+    try {
+        const res = await fetch('/api/admin/face/settings');
+        const data = await res.json();
+        const cb = document.getElementById('faceOnlyToggle');
+        const track = document.getElementById('faceToggleTrack');
+        cb.checked = !!data.face_only_checkin;
+        track.style.background = cb.checked ? 'var(--accent, #6366f1)' : 'var(--surface-2)';
+    } catch(e) {}
+}
+
+async function saveFaceSettings() {
+    const cb = document.getElementById('faceOnlyToggle');
+    const track = document.getElementById('faceToggleTrack');
+    track.style.background = cb.checked ? 'var(--accent, #6366f1)' : 'var(--surface-2)';
+    try {
+        await fetch('/api/admin/face/settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({face_only_checkin: cb.checked})
+        });
+        showMsg('faceSettingsMsg', '✓ Saved', true);
+    } catch(e) {
+        showMsg('faceSettingsMsg', 'Failed to save', false);
+    }
+}
+
+async function loadFaceEnrollmentStatus() {
+    const tbody = document.getElementById('faceEnrollmentBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-soft);">Loading...</td></tr>';
+    try {
+        const res = await fetch('/api/admin/face/enrollment-status');
+        const data = await res.json();
+        const users = data.users || [];
+        if (!users.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-soft);">No employees found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = users.map(u => {
+            const enrolledAt = u.enrolled_at ? new Date(u.enrolled_at).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+            const badge = u.enrolled
+                ? '<span style="background:#16a34a22;color:#16a34a;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Enrolled</span>'
+                : '<span style="background:#dc262622;color:#dc2626;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Not Enrolled</span>';
+            const revokeBtn = u.enrolled
+                ? `<button onclick="adminRevokeFace('${u.user_id}')" style="font-size:11px;padding:4px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--red,#dc2626);cursor:pointer;">Revoke</button>`
+                : '—';
+            return `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:12px 16px;color:var(--text);">${u.full_name || '—'}</td>
+                <td style="padding:12px 16px;color:var(--text-soft);">${u.username || '—'}</td>
+                <td style="padding:12px 16px;">${badge}</td>
+                <td style="padding:12px 16px;color:var(--text-soft);">${enrolledAt}</td>
+                <td style="padding:12px 16px;">${revokeBtn}</td>
+            </tr>`;
+        }).join('');
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--red,#dc2626);">Failed to load</td></tr>';
+    }
+}
+
+async function adminRevokeFace(userId) {
+    if (!confirm('Revoke face enrollment for this employee? They will need to re-enroll.')) return;
+    try {
+        const res = await fetch(`/api/admin/face/${userId}`, {method: 'DELETE'});
+        if (res.ok) loadFaceEnrollmentStatus();
+    } catch(e) {}
+}
+
+async function changeAdminPassword() {
+    const current = document.getElementById('currentPassword').value;
+    const next = document.getElementById('newPassword').value;
+    const confirm = document.getElementById('confirmPassword').value;
+
+    if (!current || !next) { showMsg('passwordMsg', 'Current and new password are required', false); return; }
+    if (next.length < 6) { showMsg('passwordMsg', 'New password must be at least 6 characters', false); return; }
+    if (next !== confirm) { showMsg('passwordMsg', 'New passwords do not match', false); return; }
+
+    const btn = document.getElementById('changePasswordBtn');
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Saving...';
+    try {
+        const res = await fetch('/admin/api/change-password', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({current_password: current, new_password: next})
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            showMsg('passwordMsg', '✓ Password changed successfully', true);
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } else {
+            showMsg('passwordMsg', data.message || 'Failed to change password', false);
+        }
+    } catch(e) {
+        showMsg('passwordMsg', 'Connection error. Please try again.', false);
+    } finally {
+        btn.disabled = false; btn.textContent = orig;
+    }
+}
+</script>
+{% endblock %}

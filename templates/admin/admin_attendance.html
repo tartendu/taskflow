@@ -1,0 +1,191 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Attendance{% endblock %}
+{% block page_subtitle %}Daily check-in / check-out records{% endblock %}
+
+{% block topbar_actions %}
+<div style="display:flex;align-items:center;gap:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:3px;">
+    <button id="btnDaily" onclick="setMode('daily')" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:linear-gradient(135deg,var(--primary),#8b5cf6);color:white;">Daily</button>
+    <button id="btnMonthly" onclick="setMode('monthly')" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:none;color:var(--text-muted);">Monthly</button>
+</div>
+<input type="date" class="select-input" id="attDate" onchange="loadAttendance()" style="display:block;">
+<select class="select-input" id="attMonth" onchange="loadAttendance()" style="display:none;"></select>
+<select class="select-input" id="attUser" onchange="loadAttendance()">
+    <option value="">All Users</option>
+</select>
+<button class="btn-secondary" onclick="exportAttendance()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+    Export CSV
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid stat-grid-4" id="attStats">
+    <div class="stat-card"><div class="stat-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div class="stat-val" id="sPres">—</div><div class="stat-lbl" id="lblPres">Present Today</div></div>
+    <div class="stat-card"><div class="stat-icon yellow"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></div><div class="stat-val" id="sHalf">—</div><div class="stat-lbl">Half Day</div></div>
+    <div class="stat-card"><div class="stat-icon red"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="stat-val" id="sAbs">—</div><div class="stat-lbl" id="lblAbs">Absent</div></div>
+    <div class="stat-card"><div class="stat-icon indigo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></div><div class="stat-val" id="sLeave">—</div><div class="stat-lbl">On Leave</div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <div><div class="panel-title">Attendance Records</div><div class="panel-sub" id="attPeriodLabel"></div></div>
+    </div>
+    <div id="attTableWrap"><div class="empty-state">Loading...</div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const monthSel  = document.getElementById('attMonth');
+const dateSel   = document.getElementById('attDate');
+const userSel   = document.getElementById('attUser');
+const btnDaily  = document.getElementById('btnDaily');
+const btnMonthly= document.getElementById('btnMonthly');
+const now       = new Date();
+let viewMode    = 'daily'; // 'daily' | 'monthly'
+
+// Set today as default date
+dateSel.value = now.toISOString().slice(0, 10);
+
+// Populate month dropdown (last 12 months)
+for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const opt = new Option(d.toLocaleString('en-IN',{month:'long',year:'numeric'}), val);
+    if (i === 0) opt.selected = true;
+    monthSel.appendChild(opt);
+}
+
+function setMode(mode) {
+    viewMode = mode;
+    if (mode === 'daily') {
+        dateSel.style.display  = 'block';
+        monthSel.style.display = 'none';
+        btnDaily.style.background   = 'linear-gradient(135deg,var(--primary),#8b5cf6)';
+        btnDaily.style.color        = 'white';
+        btnMonthly.style.background = 'none';
+        btnMonthly.style.color      = 'var(--text-muted)';
+        document.getElementById('lblPres').textContent = 'Present Today';
+        document.getElementById('lblAbs').textContent  = 'Absent';
+    } else {
+        dateSel.style.display  = 'none';
+        monthSel.style.display = 'block';
+        btnMonthly.style.background = 'linear-gradient(135deg,var(--primary),#8b5cf6)';
+        btnMonthly.style.color      = 'white';
+        btnDaily.style.background   = 'none';
+        btnDaily.style.color        = 'var(--text-muted)';
+        document.getElementById('lblPres').textContent = 'Total Present';
+        document.getElementById('lblAbs').textContent  = 'Total Absent';
+    }
+    loadAttendance();
+}
+
+// Load users for filter
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+        (data.users || []).forEach(u => {
+            userSel.appendChild(new Option(u.full_name || u.username, u.id));
+        });
+    } catch(e) {}
+}
+
+function fmtTime(ts) {
+    if (!ts) return '—';
+    return new Date(ts._seconds ? ts._seconds*1000 : ts)
+        .toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadAttendance() {
+    const userId = userSel.value;
+    document.getElementById('attTableWrap').innerHTML = '<div class="empty-state">Loading...</div>';
+
+    let url, periodLabel;
+    if (viewMode === 'daily') {
+        const date = dateSel.value || now.toISOString().slice(0,10);
+        url = `/api/admin/attendance?date=${date}`;
+        if (userId) url += `&user_id=${userId}`;
+        periodLabel = new Date(date + 'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    } else {
+        const [year, month] = monthSel.value.split('-');
+        url = `/api/admin/attendance?year=${year}&month=${month}`;
+        if (userId) url += `&user_id=${userId}`;
+        periodLabel = monthSel.options[monthSel.selectedIndex].text;
+    }
+    document.getElementById('attPeriodLabel').textContent = periodLabel;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const records = Array.isArray(data) ? data : (data.attendance || []);
+
+        const counts = {present:0,'half-day':0,absent:0,leave:0};
+        records.forEach(r => {
+            const s = r.status || '';
+            if (s === 'present') counts.present++;
+            else if (s === 'half-day') counts['half-day']++;
+            else if (s === 'absent' || s === 'holiday') counts.absent++;
+            if (r.leave_type) counts.leave++;
+        });
+        document.getElementById('sPres').textContent  = counts.present;
+        document.getElementById('sHalf').textContent  = counts['half-day'];
+        document.getElementById('sAbs').textContent   = counts.absent;
+        document.getElementById('sLeave').textContent = counts.leave;
+
+        if (!records.length) {
+            document.getElementById('attTableWrap').innerHTML = '<div class="empty-state">No records found for this period.</div>';
+            return;
+        }
+
+        // In monthly mode hide Date col when only 1 user selected; otherwise always show
+        const showDate = viewMode === 'monthly' || !userId;
+        const rows = records.map(r => {
+            const cin    = fmtTime(r.check_in_time);
+            const cout   = fmtTime(r.check_out_time);
+            const date   = r.date || r.leave_date || '—';
+            const status = r.leave_type ? r.leave_type : (r.status || '—');
+            const badgeCls = r.status === 'present' ? 'present' : r.status === 'half-day' ? 'half-day' : r.status === 'absent' ? 'absent' : r.status === 'holiday' ? 'holiday' : r.leave_type || '';
+            const badge  = `<span class="badge ${badgeCls}">${status}</span>`;
+            const hours  = r.work_hours_formatted || (r.work_hours ? r.work_hours+'h' : '—');
+            const dateCell = viewMode === 'monthly' ? `<td>${date}</td>` : '';
+            return `<tr>
+                <td><strong>${r.user_name || r.user_id || '—'}</strong></td>
+                ${dateCell}
+                <td>${cin}</td><td>${cout}</td>
+                <td>${hours}</td><td>${badge}</td>
+                <td style="color:var(--text-muted);font-size:11px;">${r.location_address || '—'}</td>
+            </tr>`;
+        }).join('');
+
+        const dateHeader = viewMode === 'monthly' ? '<th>Date</th>' : '';
+        document.getElementById('attTableWrap').innerHTML = `
+            <table class="tbl">
+                <thead><tr><th>User</th>${dateHeader}<th>Check In</th><th>Check Out</th><th>Hours</th><th>Status</th><th>Location</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>`;
+    } catch(e) {
+        document.getElementById('attTableWrap').innerHTML = '<div class="empty-state">Failed to load records.</div>';
+    }
+}
+
+async function exportAttendance() {
+    let startDate, endDate;
+    if (viewMode === 'daily') {
+        const date = dateSel.value || now.toISOString().slice(0,10);
+        startDate = date;
+        endDate = date;
+    } else {
+        const [year, month] = monthSel.value.split('-');
+        const lastDay = new Date(year, month, 0).getDate();
+        startDate = `${year}-${month}-01`;
+        endDate = `${year}-${month}-${String(lastDay).padStart(2,'0')}`;
+    }
+    window.location.href = `/api/admin/attendance/export-csv?start_date=${startDate}&end_date=${endDate}`;
+}
+
+loadUsers();
+loadAttendance();
+</script>
+{% endblock %}
